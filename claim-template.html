@@ -1,0 +1,1517 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Claim</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%230E2A47'/><path d='M12 29 L32 12 L52 29' fill='none' stroke='%23fff' stroke-width='5.5' stroke-linecap='round' stroke-linejoin='round'/><path d='M21.5 37.5 L28.5 44.5 L41.5 31.5' fill='none' stroke='%23F27A1D' stroke-width='5.5' stroke-linecap='round' stroke-linejoin='round'/><path d='M12 52.5 H52' stroke='%23fff' stroke-width='3' stroke-linecap='round'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}body{margin:0;font:14px/1.45 system-ui,-apple-system,'Segoe UI',sans-serif}img{max-width:100%}[hidden]{display:none!important}
+
+/* Layout: field-form tool. Sticky claim bar + trade tabs; each trade = inspection checklist, calculator, catalog quick-add, editable lines. Estimate tab renders an Xactimate-style report. */
+:root{
+  --bg:#EDF0F3; --panel:#FFFFFF; --sunk:#F5F7F9; --ink:#15212C; --muted:#5B6875; --line:#D3DAE1;
+  --accent:#1C5DA6; --accent-soft:#E2ECF7; --on-accent:#FFFFFF;
+  --ok:#1F7A4D; --warn:#A75A0A; --bad:#B42318;
+  --t-water:#1E6FB8; --t-fire:#C2410C; --t-roof:#7A5A2E; --t-interior:#6F5A9A; --t-exterior:#2F7D5B;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E151C; --panel:#151F29; --sunk:#111A22; --ink:#E4EAF0; --muted:#93A1AE; --line:#283643;
+  --accent:#6AA6E8; --accent-soft:#1B2D42; --on-accent:#0B1520;
+  --ok:#4CC08A; --warn:#E8A04A; --bad:#F07A6E;
+  --t-water:#5FA6EA; --t-fire:#F08A52; --t-roof:#C9A26A; --t-interior:#A991D6; --t-exterior:#5CC294;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E151C; --panel:#151F29; --sunk:#111A22; --ink:#E4EAF0; --muted:#93A1AE; --line:#283643;
+  --accent:#6AA6E8; --accent-soft:#1B2D42; --on-accent:#0B1520;
+  --ok:#4CC08A; --warn:#E8A04A; --bad:#F07A6E;
+  --t-water:#5FA6EA; --t-fire:#F08A52; --t-roof:#C9A26A; --t-interior:#A991D6; --t-exterior:#5CC294;
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--panel)}
+.wrap{max-width:1200px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--panel);border-bottom:1px solid var(--line)}
+.bar-top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-block:10px}
+.brand{font-family:var(--f-display);font-weight:700;font-size:18px;letter-spacing:.01em;margin:0}
+.claimtag{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.spacer{flex:1}
+.rcv{display:flex;align-items:baseline;gap:8px}
+.rcv .lbl{font-family:var(--f-display);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.rcv .val{font-family:var(--f-mono);font-weight:500;font-size:18px;font-variant-numeric:tabular-nums}
+nav.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav.tabs::-webkit-scrollbar{display:none}
+.tab{appearance:none;border:0;background:none;color:var(--muted);font-family:var(--f-display);font-weight:600;font-size:14px;padding:9px 12px 10px;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--tc,var(--accent))}
+.tab .n{font-family:var(--f-mono);font-size:11px;background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:0 6px;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--tc,var(--accent));display:inline-block}
+main{padding-block:20px 60px}
+h2{font-family:var(--f-display);font-weight:700;font-size:24px;margin:0;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:600;font-size:16px;margin:0 0 10px;letter-spacing:.01em}
+.eyebrow{font-family:var(--f-display);font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.sec-head{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.sec-head p{margin:4px 0 0;color:var(--muted);max-width:65ch}
+.grid2{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:16px;margin-bottom:16px}
+@media (max-width:860px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;min-width:0}
+.panel + .panel{margin-top:16px}
+.stack{display:flex;flex-direction:column;gap:16px}
+.fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label,.flabel{font-family:var(--f-display);font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--sunk);border:1px solid var(--line);border-radius:4px;padding:6px 8px;min-width:0;width:100%}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+textarea{resize:vertical;min-height:90px;line-height:1.5}
+input.num{font-family:var(--f-mono);text-align:right;font-variant-numeric:tabular-nums}
+.btn{appearance:none;font-family:var(--f-display);font-weight:600;font-size:13px;letter-spacing:.02em;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:4px;padding:7px 12px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.small{padding:4px 8px;font-size:12px}
+.btn.ghost{background:none;border-color:transparent;color:var(--muted)}
+.btn.ghost:hover{color:var(--bad)}
+.btn:disabled{opacity:.5;cursor:default}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.note{color:var(--muted);font-size:12.5px;margin:8px 0 0}
+.checklist{display:flex;flex-direction:column}
+.ck{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.ck:first-child{border-top:0}
+.ck .q{min-width:0}
+.ck .q small{display:block;color:var(--muted);font-size:12px}
+.ck.wide{grid-template-columns:minmax(0,1fr)}
+.ck.mine .q::before{content:"Yours";font-family:var(--f-display);font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--tc,var(--accent));border:1px solid currentColor;border-radius:3px;padding:0 4px;margin-right:6px;vertical-align:1px}
+.ck .ans{display:flex;gap:6px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+.ck.wide .ans{justify-content:stretch}
+.ck.wide .ans input{flex:1}
+.ck-add{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+.ck-add input[type="text"]{flex:1 1 220px}
+.ck-add select{width:auto}
+.ck-add label{display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--muted)}
+.ck-add input[type="checkbox"]{width:auto}
+.offline{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 16px;margin-bottom:16px}
+.offline p{margin:0;flex:1;min-width:220px;font-size:13px;color:var(--muted)}
+.offline b{color:var(--ink)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.seg button{appearance:none;border:0;background:var(--panel);color:var(--muted);font-family:var(--f-display);font-weight:600;font-size:12px;padding:4px 10px;cursor:pointer;border-left:1px solid var(--line)}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed="true"][data-v="Yes"]{background:var(--ok);color:var(--on-accent)}
+.seg button[aria-pressed="true"][data-v="No"]{background:var(--bad);color:var(--on-accent)}
+.seg button[aria-pressed="true"][data-v="N/A"]{background:var(--muted);color:var(--panel)}
+.ck select,.ck input{width:auto;max-width:170px}
+.ck input[type="text"]{max-width:none;width:100%}
+.progress{height:4px;background:var(--sunk);border-radius:2px;overflow:hidden;margin:2px 0 12px}
+.progress i{display:block;height:100%;background:var(--tc,var(--accent))}
+.tscroll{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+table{border-collapse:collapse;width:100%}
+th{font-family:var(--f-display);font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px;border-bottom:1px solid var(--line);background:var(--sunk);white-space:nowrap}
+td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right}
+.code{font-family:var(--f-mono);font-size:12px;white-space:nowrap}
+.code b{font-weight:500;color:var(--tc,var(--accent))}
+.money{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.cat-table td input,.cat-table td select{padding:4px 6px}
+.lines-table input,.lines-table select{padding:4px 6px}
+.w-qty{width:84px}.w-price{width:92px}.w-unit{width:62px}.w-act{width:64px}.w-area{width:140px}.w-cat{width:62px}.w-sel{width:78px}
+.lines-table .desc{min-width:220px}
+.empty{padding:20px;text-align:center;color:var(--muted)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-family:var(--f-mono);font-size:11.5px;background:var(--sunk);border:1px solid var(--line);border-radius:3px;padding:2px 6px;color:var(--muted)}
+.chip b{color:var(--ink);font-weight:500}
+.banner{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--accent-soft);border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin-bottom:16px;font-size:13px}
+.banner p{margin:0;flex:1;min-width:220px}
+.calc-out{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin:12px 0}
+.calc-out div{background:var(--sunk);border:1px solid var(--line);border-radius:4px;padding:8px}
+.calc-out span{display:block;font-family:var(--f-display);font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.calc-out b{font-family:var(--f-mono);font-weight:500;font-size:16px}
+.rooms td input{padding:4px 6px}
+/* report */
+.report{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:24px;min-width:0}
+.rep-head{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:4px 24px;padding-bottom:16px;border-bottom:2px solid var(--ink);margin-bottom:16px;font-size:13px}
+.rep-head div span{color:var(--muted);display:inline-block;min-width:110px}
+.rep-title{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline;margin-bottom:12px}
+.rep-title h2{font-size:22px}
+.area-h{font-family:var(--f-display);font-weight:700;font-size:15px;letter-spacing:.03em;text-transform:uppercase;margin:20px 0 6px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.area-h small{font-family:var(--f-mono);font-weight:400;font-size:11.5px;color:var(--muted);text-transform:none;letter-spacing:0}
+.rep-table td{font-size:13px}
+.rep-table .ln{color:var(--muted);font-family:var(--f-mono);font-size:12px;width:36px}
+.rep-table tfoot td{font-weight:600;border-top:1px solid var(--ink)}
+.summary{margin-top:24px;margin-left:auto;max-width:420px}
+.summary div{display:flex;justify-content:space-between;gap:16px;padding:5px 0;border-bottom:1px solid var(--line)}
+.summary div.tot{font-weight:600;border-bottom:2px solid var(--ink)}
+.summary div.net{font-weight:700;font-size:16px;border-bottom:0}
+.flags li{margin-bottom:4px}
+.agent-out{white-space:pre-wrap;background:var(--sunk);border:1px solid var(--line);border-radius:4px;padding:12px;min-height:120px;font-size:13.5px;max-height:520px;overflow:auto}
+.status{font-size:12.5px;color:var(--muted)}
+.status.err{color:var(--bad)}
+.thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.thumbs img{width:64px;height:64px;object-fit:cover;border-radius:4px;border:1px solid var(--line)}
+.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:2px dashed var(--line);border-radius:6px;padding:18px;text-align:center;cursor:pointer;background:var(--sunk);color:var(--muted)}
+.drop:hover,.drop.over{border-color:var(--tc,var(--accent));color:var(--ink)}
+.drop b{font-family:var(--f-display);font-weight:600;font-size:14px;color:var(--ink)}
+.drop input{position:absolute;width:1px;height:1px;opacity:0}
+.drop:focus-within{outline:2px solid var(--accent);outline-offset:1px}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-top:12px}
+.pcard{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--panel);display:flex;flex-direction:column;min-width:0}
+.pcard .ph{position:relative;aspect-ratio:4/3;background:var(--sunk);max-width:100%}
+.pcard .ph img{width:100%;height:100%;object-fit:cover;display:block}
+.pcard .ph .num{position:absolute;left:6px;top:6px;font-family:var(--f-mono);font-size:11px;background:var(--panel);color:var(--ink);border-radius:3px;padding:1px 6px}
+.pcard .ph .tr{position:absolute;right:6px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--tc,var(--accent));border:2px solid var(--panel)}
+.pcard .pb{padding:8px;display:flex;flex-direction:column;gap:6px}
+.pcard .pb input,.pcard .pb select{padding:4px 6px;font-size:12.5px}
+.pcard .pb .row{justify-content:space-between}
+.eq-table td input,.eq-table td select{padding:4px 6px}.w-dt{width:190px}.w-tag{width:130px}.onsite{font-family:var(--f-display);font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--warn)}
+.psheet{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:560px){.psheet{grid-template-columns:minmax(0,1fr)}}
+.psheet figure{margin:0;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.psheet img{width:100%;max-height:340px;object-fit:contain;background:var(--sunk);display:block}
+.psheet figcaption{padding:6px 8px;font-size:12.5px}
+.psheet figcaption b{font-family:var(--f-mono);font-weight:500}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--panel);padding:8px 14px;border-radius:4px;font-size:13px;z-index:20;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+.confirm{display:inline-flex;gap:6px;align-items:center;font-size:12.5px}
+/* iPhone / iPad */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+button,.tab,label.btn,.seg button,select{touch-action:manipulation}
+@media (pointer:coarse){
+  input,select,textarea{font-size:16px}
+  input,select{min-height:40px}
+  .btn{min-height:40px;padding:8px 14px}
+  .btn.small{min-height:36px;padding:6px 11px}
+  .seg button{min-height:38px;padding:6px 14px;font-size:13px}
+  .tab{padding:12px 14px 13px}
+  input[type="checkbox"]{width:22px!important;height:22px;min-height:0}
+  .ck select,.ck input{max-width:190px}
+}
+@media (max-width:640px){
+  .bar-top{padding-block:8px;gap:8px 12px;flex-wrap:nowrap}
+  .brand{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .claimtag{display:none}
+  .rcv .val{font-size:15px}
+  .mwrap{overflow:visible;border:0;background:none;border-radius:0}
+  table.mcard,table.mcard tbody,table.mcard td{display:block;width:100%}
+  table.mcard thead{display:none}
+  table.mcard tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px;margin-bottom:10px}
+  table.mcard td{border:0;padding:0;min-width:0}
+  table.mcard td[data-label]::before{content:attr(data-label);display:block;font-family:var(--f-display);font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+  table.mcard td.wide{grid-column:1/-1}
+  table.mcard td.act{grid-column:1/-1;display:flex;justify-content:flex-end;gap:8px}
+  table.mcard td.money{text-align:left}
+  table.mcard td input:not([type="checkbox"]),table.mcard td select{width:100%!important;max-width:none!important;min-width:0!important}
+  table.mcard td .row{flex-wrap:wrap}
+}
+.sugg{border:1.5px solid var(--tc,var(--accent))}
+.sugg-n{display:inline-block;font-family:var(--f-mono);font-size:12px;font-weight:500;background:var(--tc,var(--accent));color:var(--on-accent);border-radius:10px;padding:0 7px;vertical-align:2px;margin-left:4px}
+.sugg-list{display:flex;flex-direction:column}
+.sugg-row{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line)}
+.sugg-row:first-child{border-top:0}
+.sugg-main{min-width:0;display:flex;flex-direction:column;gap:2px}
+.sugg-meta,.sugg-why{font-size:12.5px;color:var(--muted)}
+.setq{color:var(--warn);font-weight:600}
+.m-dry{color:var(--ok);font-weight:600}.m-wet{color:var(--warn);font-weight:600}
+.catsearch{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.catsearch input{flex:1}
+@media (max-width:640px){.sugg-row{flex-direction:column;align-items:stretch}.sugg-row .row{justify-content:flex-end}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (max-width:560px){.report{padding:14px}.rcv .val{font-size:16px}}
+
+.filebar{display:flex;gap:8px;align-items:center}
+.filestate{font-size:12px;color:var(--muted);max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.filestate.dirty{color:var(--warn);font-weight:600}
+@media (max-width:640px){.filestate{display:none}}
+@media print{body>*:not(#printRoot){display:none!important}}
+</style>
+<script>document.documentElement.classList.add("js")</script>
+<style>
+html:not(.js) header.bar, html:not(.js) #main, html:not(.js) .toast{display:none!important}
+html.js #staticView{display:none}
+#staticView{max-width:1000px;margin:0 auto;padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+#staticView .viewnote{background:var(--accent-soft);border:1px solid var(--line);border-radius:6px;padding:12px 14px;margin-bottom:16px;font-size:14px}
+#staticView .viewnote b{display:block;margin-bottom:2px}
+#staticView .psheet img{max-height:none}
+</style>
+</head>
+<body>
+<div id="staticView"></div><!--/staticView-->
+<header class="bar">
+  <div class="wrap">
+    <div class="bar-top">
+      <h1 class="brand">Field Scope Checklist</h1>
+      <span class="claimtag" id="claimTag"></span>
+      <span class="spacer"></span>
+      <div class="filebar"><span class="filestate" id="fileState" role="status">Not saved to a file yet</span><button class="btn small" type="button" data-sopen>Open</button><button class="btn small primary" type="button" data-ssave title="Save (Ctrl+S)">Save</button></div>
+      <div class="rcv"><span class="lbl">Line items</span><span class="val" id="rcvTop">0</span></div>
+    </div>
+    <nav class="tabs" id="tabs" role="tablist"></nav>
+  </div>
+</header>
+<main class="wrap" id="main"></main>
+<div class="toast" id="toast" role="status"></div>
+
+<script type="application/json" id="claim-data">null</script>
+<script>
+const __SHELL = ("<!doctype html>\n" + document.documentElement.outerHTML).replace(/^(<!doctype html>\n<html[^>]*?) class="js"/, "$1");
+
+/* ---------- Catalog (unit prices are placeholders) ---------- */
+const TRADES = {
+  water:{name:"Water Mitigation",short:"Water",color:"--t-water"},
+  fire:{name:"Fire & Smoke",short:"Fire & Smoke",color:"--t-fire"},
+  roof:{name:"Roofing",short:"Roofing",color:"--t-roof"},
+  interior:{name:"Interior",short:"Interior",color:"--t-interior"},
+  exterior:{name:"Exterior",short:"Exterior",color:"--t-exterior"}
+};
+const ACTS = {"+":"Replace","-":"Remove","&":"Remove & replace","R":"Detach & reset","C":"Clean","I":"Install only","M":"Material only"};
+// [cat, sel, description, unit, sample price, default action, room basis]
+const CATALOG = {
+water:[
+ ["WTR","ESRVD","Emergency service call - after business hours","EA",250,"+"],
+ ["WTR","EQ","Equipment setup, take down & monitoring (hourly)","HR",75,"+"],
+ ["WTR","MTR","Moisture mapping / thermal imaging (hourly)","HR",75,"+"],
+ ["WTR","EXT","Water extraction from carpeted floor","SF",0.95,"+","floor"],
+ ["WTR","EXTH","Water extraction from hard surface floor","SF",0.55,"+","floor"],
+ ["WTR","DRY","Air mover (per 24 hour period) - no monitoring","EA",35,"+"],
+ ["WTR","DHM","Dehumidifier (per 24 hour period) - Large - no monitoring","EA",95,"+"],
+ ["WTR","NAFAN","Negative air fan / air scrubber (per 24 hour period)","DA",85,"+"],
+ ["WTR","GRM","Apply anti-microbial agent to surfaces","SF",0.35,"+","floor"],
+ ["WTR","BARR","Containment barrier / airlock - tension post","SF",1.10,"+"],
+ ["WTR","FCUT","Tear out wet drywall - flood cut up to 2'","LF",3.10,"-","perim"],
+ ["WTR","DRYW","Tear out wet drywall, cleanup, bag for disposal","SF",1.45,"-","walls"],
+ ["WTR","CARP","Tear out wet carpet - cut and bag","SF",0.55,"-","floor"],
+ ["WTR","PADT","Tear out wet carpet pad & bag for disposal","SF",0.60,"-","floor"],
+ ["WTR","BASE","Tear out baseboard & bag for disposal","LF",0.95,"-","perim"],
+ ["WTR","INSUL","Tear out wet insulation & bag for disposal","SF",0.95,"-"],
+ ["CON","BLK","Contents - block & pad / move out then reset (hourly)","HR",55,"+"]
+],
+fire:[
+ ["TMP","BU","Board up - per sq ft (1 layer)","SF",2.40,"+"],
+ ["CLN","HEPA","HEPA vacuuming - detailed","SF",0.35,"C","floor"],
+ ["CLN","SOOT","Dry clean (soot sponge) walls & ceiling","SF",0.45,"C","walls"],
+ ["CLN","WALL","Clean walls - heavy smoke/soot","SF",0.55,"C","walls"],
+ ["CLN","CEIL","Clean ceiling - heavy smoke/soot","SF",0.65,"C","ceil"],
+ ["CLN","FOG","Deodorize building - thermal fog","SF",0.18,"+","floor"],
+ ["CLN","HYD","Hydroxyl generator (per 24 hour period)","DA",110,"+"],
+ ["PNT","SEAL","Seal walls/ceiling w/ odor-blocking sealer - 1 coat","SF",0.85,"+","walls"],
+ ["HVC","DUCT","Clean HVAC ductwork - per register","EA",45,"C"],
+ ["FRM","2X4","2x4 stud wall framing - charred member replacement","LF",6.50,"&"],
+ ["INS","R13","Batt insulation - 4\" - R13","SF",1.15,"&"],
+ ["ELE","INSP","Electrical inspection after fire (hourly)","HR",95,"+"],
+ ["CPS","PACK","Contents pack-out & inventory (hourly)","HR",58,"+"],
+ ["DMO","DEB","Haul debris - per pickup truck load","EA",155,"+"]
+],
+roof:[
+ ["RFG","300","Laminated - comp. shingle rfg. - w/out felt","SQ",265,"&"],
+ ["RFG","240","3 tab - 25 yr - comp. shingle rfg. - w/out felt","SQ",225,"&"],
+ ["RFG","ARMV","Remove additional layer of comp. shingles","SQ",60,"-"],
+ ["RFG","FELT15","Roofing felt - 15 lb.","SQ",35,"&"],
+ ["RFG","IWS","Ice & water barrier","SF",1.95,"+"],
+ ["RFG","DRIP","Drip edge","LF",3.10,"&"],
+ ["RFG","STRT","Asphalt starter - universal starter course","LF",2.15,"+"],
+ ["RFG","RIDGC","Hip / Ridge cap - standard profile - composition","LF",6.50,"&"],
+ ["RFG","VENTR","Continuous ridge vent - shingle-over style","LF",9.50,"&"],
+ ["RFG","FLPIPE","Flashing - pipe jack","EA",55,"&"],
+ ["RFG","STEP","Step flashing","LF",9.00,"&"],
+ ["RFG","VAL","Valley metal","LF",6.00,"&"],
+ ["RFG","STEEP","Additional charge for steep roof - 7/12 to 9/12 slope","SQ",55,"+"],
+ ["RFG","HIGH","Additional charge for high roof (2 stories or greater)","SQ",35,"+"],
+ ["TMP","TARP","Tarp - all-purpose poly - per sq ft (labor & material)","SF",1.10,"+"],
+ ["DMO","DUMP","Dumpster load - approx. 30 yards","EA",650,"+"],
+ ["FEE","PRMT","Building permit - roofing","EA",250,"+"]
+],
+interior:[
+ ["DRY","1/2","1/2\" drywall - hung, taped, floated, ready for paint","SF",2.85,"&","walls"],
+ ["DRY","TXT","Texture drywall - light hand texture","SF",0.65,"+","walls"],
+ ["PNT","SP","Seal/prime then paint the walls (2 coats)","SF",1.25,"+","walls"],
+ ["PNT","CLG","Seal/prime then paint the ceiling (2 coats)","SF",1.15,"+","ceil"],
+ ["PNT","BASE","Paint baseboard - two coats","LF",1.30,"+","perim"],
+ ["FNC","BS3","Baseboard - 3 1/4\"","LF",3.95,"&","perim"],
+ ["FNC","CAS","Casing - 2 1/4\"","LF",2.60,"&"],
+ ["FCC","PAD","Carpet pad","SF",0.75,"&","floor"],
+ ["FCC","AV","Carpet - average grade","SF",3.80,"&","floor"],
+ ["FCV","LVP","Vinyl plank flooring","SF",5.90,"&","floor"],
+ ["FCW","OAK","Oak flooring - #1 common - no finish","SF",9.40,"&","floor"],
+ ["FCT","TILE","Ceramic tile flooring","SF",11.20,"&","floor"],
+ ["CAB","LOW","Cabinetry - lower (base) units","LF",245,"&"],
+ ["CAB","LOWR","Cabinetry - lower (base) units - detach & reset","LF",38,"R"],
+ ["CTR","LAM","Countertop - post formed plastic laminate","LF",38,"&"],
+ ["INS","R13","Batt insulation - 4\" - R13","SF",1.15,"&"],
+ ["ELE","LGT","Light fixture - detach & reset","EA",62,"R"],
+ ["CON","MOVE","Contents - move out then reset - large room","EA",95,"+"],
+ ["CLN","FINAL","Final cleaning - construction - residential","SF",0.32,"C","floor"]
+],
+exterior:[
+ ["SDG","VNYL","Siding - vinyl","SF",5.40,"&"],
+ ["SDG","WRAP","House wrap (air/moisture barrier)","SF",0.45,"+"],
+ ["SFG","GUTA","Gutter / downspout - aluminum - up to 5\"","LF",9.80,"&"],
+ ["SFG","FASC","Fascia - metal - 6\"","LF",7.90,"&"],
+ ["SFG","SOFV","Soffit - vinyl","SF",8.50,"&"],
+ ["SFG","GRD","Gutter guard / screen","LF",4.50,"&"],
+ ["WDW","SCRN","Window screen - re-screen","EA",38,"+"],
+ ["WDV","DH","Vinyl window - double hung","EA",525,"&"],
+ ["DOR","EXT","Exterior door - metal - insulated - flush","EA",620,"&"],
+ ["GAR","PNL","Garage door section/panel","EA",380,"&"],
+ ["PNT","EXT","Paint exterior siding - 2 coats","SF",1.50,"+"],
+ ["CLN","PWSH","Pressure / chemical wash exterior","SF",0.30,"C"],
+ ["FEN","WOOD","Wood fence 5'-6' high","LF",32,"&"],
+ ["HVC","FINS","Comb and straighten a/c condenser fins","EA",90,"+"],
+ ["LAB","LAB","General laborer (hourly)","HR",55,"+"]
+]};
+const CAT_TRADE = {WTR:"water",CON:"water",TMP:"fire",CLN:"fire",HVC:"fire",FRM:"fire",ELE:"interior",CPS:"fire",DMO:"fire",RFG:"roof",FEE:"roof",DRY:"interior",PNT:"interior",FNC:"interior",FCC:"interior",FCV:"interior",FCW:"interior",FCT:"interior",CAB:"interior",CTR:"interior",INS:"interior",SDG:"exterior",SFG:"exterior",WDW:"exterior",WDV:"exterior",DOR:"exterior",GAR:"exterior",FEN:"exterior",LAB:"exterior"};
+function findCat(cat,sel){for(const t in CATALOG)for(const i of CATALOG[t])if(i[0]===cat&&i[1]===sel)return {t,i};return null}
+
+/* ---------- Inspection checklists ---------- */
+const YN = "yn";
+const CHECKS = {
+water:[
+ ["w_src","Source of loss identified and stopped",YN],
+ ["w_cat","Category of water (IICRC S500)","sel",["","Cat 1 - clean","Cat 2 - gray","Cat 3 - black"]],
+ ["w_class","Class of water / evaporation load","sel",["","Class 1","Class 2","Class 3","Class 4"]],
+ ["w_hrs","Hours since loss before mitigation started","num"],
+ ["w_map","Moisture map & initial readings logged",YN],
+ ["w_ir","Thermal images captured of affected areas",YN],
+ ["w_photos","Photos of source, affected rooms, equipment placement",YN],
+ ["w_goal","Dry standard / drying goal set from unaffected material",YN],
+ ["w_haz","Pre-1980 structure: asbestos / lead test needed",YN],
+ ["w_mold","Visible microbial growth present",YN],
+ ["w_auth","Work authorization signed by insured",YN],
+ ["w_daily","Daily monitoring log kept (readings + equipment count)",YN]
+],
+fire:[
+ ["f_origin","Room / area of origin","text"],
+ ["f_fd","Fire department responded (report # in notes)",YN],
+ ["f_util","Utilities shut off / made safe",YN],
+ ["f_struct","Structural safety checked before entry",YN],
+ ["f_smoke","Predominant smoke residue","sel",["","Dry / fast burn","Wet / smoldering","Protein","Fuel oil / puffback"]],
+ ["f_hvac","HVAC ran during or after fire (ducts contaminated)",YN],
+ ["f_odor","Odor level","sel",["","Light","Moderate","Heavy"]],
+ ["f_board","Board-up / roof tarp required",YN],
+ ["f_pack","Contents pack-out required",YN],
+ ["f_water","Water damage from suppression present",YN],
+ ["f_test","Chalk/wipe test documents soot migration to unaffected rooms",YN]
+],
+roof:[
+ ["r_date","Reported storm date / event","text"],
+ ["r_type","Roof covering","sel",["","Laminated comp","3-tab comp","Metal","Tile","Wood shake","Modified bitumen / flat"]],
+ ["r_age","Approx. roof age (years)","num"],
+ ["r_hail","Largest hail size observed (in)","num"],
+ ["r_ts","Test square hits per 10'x10' (F/R/L/Rt)","text"],
+ ["r_wind","Wind-lifted / creased / missing shingles documented",YN],
+ ["r_coll","Collateral damage: gutters, vents, A/C fins, siding",YN],
+ ["r_leak","Interior leaks traced to roof",YN],
+ ["r_ice","Ice & water barrier required by local code",YN],
+ ["r_match","Shingle match / discontinued product issue",YN],
+ ["r_photos","Photos: each slope, test squares, overview, close-ups",YN],
+ ["r_ladder","Ladder assist / steep / high charges needed",YN]
+],
+interior:[
+ ["i_dims","Each affected room sketched with L x W x H",YN],
+ ["i_ceil","Ceiling height / type (flat, vaulted, popcorn)","text"],
+ ["i_tex","Wall texture documented for match",YN],
+ ["i_paint","Paint continuity: paint to corners / adjoining walls",YN],
+ ["i_floor","Flooring continuous into adjoining rooms",YN],
+ ["i_cab","Cabinets / countertops affected",YN],
+ ["i_ins","Insulation affected behind walls",YN],
+ ["i_cont","Contents inventory needed",YN],
+ ["i_pre","Pre-existing / unrelated damage noted",YN]
+],
+exterior:[
+ ["e_elev","All elevations photographed (front, rear, left, right)",YN],
+ ["e_sdg","Siding type & damaged pieces counted per elevation","text"],
+ ["e_win","Window screens / glazing / wraps damaged",YN],
+ ["e_gut","Gutters & downspouts dented / detached",YN],
+ ["e_fas","Fascia / soffit damaged",YN],
+ ["e_door","Exterior / garage doors damaged",YN],
+ ["e_ac","A/C condenser fins damaged",YN],
+ ["e_fence","Fence / deck / outbuildings damaged",YN],
+ ["e_paint","Exterior paint or stain damage",YN]
+]};
+
+/* ---------- State ---------- */
+const KEY = (()=>{ try{ const d=JSON.parse(document.getElementById("claim-data").textContent); return "scopeClaim."+String(d.claim.claimNo||"claim").replace(/[^A-Za-z0-9_-]/g,"_"); }catch(e){ return "scopeClaim.unsaved"; } })();
+let uidN = 1; const uid = () => "x" + Date.now().toString(36) + (uidN++);
+function sampleState(){
+  const s = {
+    example:true,
+    claim:{insured:"Example: J. & M. Rivera",address:"1420 Sample Ct, Anytown, MD 20745",phone:"",claimNo:"EX-2026-00418",policyNo:"HO3-55210",carrier:"Example Mutual",adjuster:"",estimator:"",dol:"2026-10-14",insp:"2026-10-16",cause:"Supply line failure under kitchen sink; wind/hail event same week",priceList:"MDWA8X_OCT26",tax:6,matShare:45,op:true,oh:10,pf:10,deductible:1000},
+    rooms:[
+      {id:"r1",name:"Kitchen",kind:"room",L:14,W:12,H:8,doors:1,windows:1},
+      {id:"r2",name:"Living Room",kind:"room",L:16,W:15,H:8,doors:1,windows:2},
+      {id:"r3",name:"Hallway",kind:"room",L:12,W:4,H:8,doors:2,windows:0},
+      {id:"r4",name:"Roof",kind:"roof"},
+      {id:"r5",name:"Front Elevation",kind:"elev"},
+      {id:"r6",name:"Rear Elevation",kind:"elev"},
+      {id:"r7",name:"Left Elevation",kind:"elev"},
+      {id:"r8",name:"Right Elevation",kind:"elev"}
+    ],
+    checks:{w_src:"Yes",w_cat:"Cat 1 - clean",w_class:"Class 2",w_hrs:"6",w_map:"Yes",w_ir:"Yes",w_photos:"Yes",w_haz:"No",w_mold:"No",w_auth:"Yes",
+      r_date:"2026-10-12 wind & hail",r_type:"Laminated comp",r_age:"14",r_hail:"1.25",r_ts:"11 / 9 / 4 / 7",r_wind:"Yes",r_coll:"Yes",r_leak:"No",r_ice:"Yes",r_photos:"Yes",
+      i_dims:"Yes",i_ceil:"8' flat, smooth",i_tex:"Yes",i_paint:"Yes",i_floor:"Yes",i_cab:"Yes",e_elev:"Yes",e_gut:"Yes",e_ac:"Yes"},
+    water:{area:540,cls:"2",rooms:3,days:3,dehuPints:110},
+    roof:{sq:24.5,waste:10,ridge:42,hip:0,valley:28,eaves:96,rakes:74,pitch:8,stories:2,layers:1,pipes:3,step:22,vent:38},
+    lines:[], notes:"Kitchen: supply line under sink failed overnight. Standing water across kitchen LVP and into hallway and living room carpet. Base cabinets swollen at toe kick. Wet drywall to ~14\" on kitchen and hallway walls. Readings 40%+ at bottom plate.\nRoof: hail hits on all slopes, heaviest front and rear. Several creased tabs on rear slope. Dented gutters on front and right. A/C fins flattened.",
+    narrative:""
+  };
+  const L = (trade,area,cat,sel,qty,act) => { const f=findCat(cat,sel); s.lines.push({id:uid(),trade,area,cat,sel,act:act||f.i[5],desc:f.i[2],qty,unit:f.i[3],price:f.i[4],note:""}); };
+  L("water","r1","WTR","EQ",3); L("water","r1","WTR","EXTH",168); L("water","r3","WTR","EXTH",48);
+  L("water","r2","WTR","EXT",240); L("water","r2","WTR","PADT",240); L("water","r1","WTR","FCUT",52); L("water","r3","WTR","FCUT",32);
+  L("water","r1","WTR","GRM",216);
+  L("interior","r1","DRY","1/2",104); L("interior","r1","PNT","SP",416); L("interior","r1","FNC","BS3",52);
+  L("interior","r1","FCV","LVP",168); L("interior","r1","CAB","LOW",14); L("interior","r2","FCC","PAD",240);
+  L("exterior","r5","SFG","GUTA",48); L("exterior","r8","SFG","GUTA",36); L("exterior","r6","HVC","FINS",1);
+  s.lines.push(...roofLines(s.roof,"r4"));
+  const E=(type,area,units,tag,placed,removed)=>{const t=EQUIP[type]; s.equip.push({id:uid(),type,name:t.name,area,units,tag,placed,removed,days:"",rate:t.rate,cat:t.cat,sel:t.sel,trade:t.trade});};
+  s.equip=[];
+  E("am","r1",5,"AM-101 to 105","2026-10-14T21:30","2026-10-17T10:00");
+  E("am","r2",4,"AM-110 to 113","2026-10-14T21:45","2026-10-17T10:00");
+  E("am","r3",3,"AM-120 to 122","2026-10-14T22:00","2026-10-17T10:00");
+  E("dhl","r1",1,"LGR-07","2026-10-14T21:30","2026-10-17T10:00");
+  E("dhx","r2",1,"LGR-XL-02","2026-10-14T21:45","2026-10-17T10:00");
+  E("afd","r1",1,"AS-03","2026-10-14T22:15","2026-10-16T16:00");
+  s.lines.push(...equipLines(s.equip));
+  s.moisture=[]; s.dismissed={};
+  [["r1","N wall, 6 in up","Drywall",12,[40,22,11]],["r1","Sink base subfloor","Subfloor",15,[32,21,14]],["r3","E wall, 6 in up","Drywall",12,[35,18,10]],["r2","Carpet at hallway","Carpet / pad",10,[28,16,9]]]
+    .forEach(([area,point,material,goal,rs])=>rs.forEach((rd,i)=>s.moisture.push({id:uid(),date:`2026-10-${15+i}`,area,point,material,reading:String(rd),goal:String(goal)})));
+  return s;
+}
+let S;
+let saveT; function save(){ clearTimeout(saveT); saveT=setTimeout(()=>{ try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){} },300); }
+
+/* ---------- Helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = v => String(v ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const n = v => { const x = parseFloat(v); return isFinite(x) ? x : 0; };
+const r2 = v => Math.round(v*100)/100;
+const money = v => (v<0?"-":"") + "$" + Math.abs(v).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+const qfmt = v => n(v).toLocaleString("en-US",{maximumFractionDigits:2});
+function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("on"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("on"),2200); }
+const roomById = id => S.rooms.find(r=>r.id===id);
+function roomCalc(r){ if(!r||r.kind!=="room") return null; const L=n(r.L),W=n(r.W),H=n(r.H),D=n(r.doors),Wn=n(r.windows); return {walls:r2(Math.max(0,2*(L+W)*H-D*21-Wn*15)),ceil:r2(L*W),floor:r2(L*W),perim:r2(Math.max(0,2*(L+W)-D*3))}; }
+function areaName(id){ const r=roomById(id); return r? r.name : "General"; }
+
+/* ---------- Calculators ---------- */
+function roofLines(R, areaId){
+  const out=[]; const add=(cat,sel,qty,act)=>{ if(!(qty>0)) return; const f=findCat(cat,sel); out.push({id:uid(),trade:"roof",area:areaId,cat,sel,act:act||f.i[5],desc:f.i[2],qty:r2(qty),unit:f.i[3],price:f.i[4],note:"Roof calc"}); };
+  const sq=n(R.sq), waste=n(R.waste)/100, eaves=n(R.eaves), rakes=n(R.rakes), ridge=n(R.ridge), hip=n(R.hip), valley=n(R.valley);
+  const shingleSq = Math.ceil(sq*(1+waste)*3)/3;
+  add("RFG","300",shingleSq,"&");
+  if(n(R.layers)>1) add("RFG","ARMV",sq*(n(R.layers)-1),"-");
+  add("RFG","FELT15",sq,"&");
+  add("RFG","DRIP",eaves+rakes,"&");
+  add("RFG","STRT",eaves+rakes,"+");
+  add("RFG","RIDGC",ridge+hip,"&");
+  if(n(R.vent)>0) add("RFG","VENTR",n(R.vent),"&");
+  if(S && S.checks && S.checks.r_ice==="No"){} else add("RFG","IWS",eaves*3+valley*3,"+");
+  add("RFG","VAL",valley,"&");
+  add("RFG","FLPIPE",n(R.pipes),"&");
+  add("RFG","STEP",n(R.step),"&");
+  if(n(R.pitch)>=7) add("RFG","STEEP",sq,"+");
+  if(n(R.stories)>=2) add("RFG","HIGH",sq,"+");
+  add("DMO","DUMP",Math.max(1,Math.ceil(sq/30)),"+");
+  add("FEE","PRMT",1,"+");
+  return out;
+}
+const LGR = {"1":100,"2":40,"3":30,"4":25};
+function waterCalc(W){
+  const sf=n(W.area), cls=W.cls||"2", rooms=Math.max(1,n(W.rooms)), days=Math.max(1,n(W.days));
+  const perSf = cls==="1"?70:cls==="2"?60:50;
+  const am = rooms + Math.ceil(sf/perSf);
+  const cf = sf*8; const pints = cf/(LGR[cls]||40);
+  const dehu = Math.max(1,Math.ceil(pints/Math.max(1,n(W.dehuPints)||110)));
+  return {am,dehu,days,amDays:am*days,dhDays:dehu*days,pints:Math.round(pints)};
+}
+
+/* ---------- Totals ---------- */
+function lineTotal(l){ return r2(n(l.qty)*n(l.price)); }
+function totals(){
+  const c=S.claim; const sub = S.lines.reduce((a,l)=>a+lineTotal(l),0);
+  const tax = r2(sub*(n(c.matShare)/100)*(n(c.tax)/100));
+  const oh = c.op? r2((sub+tax)*n(c.oh)/100):0, pf = c.op? r2((sub+tax)*n(c.pf)/100):0;
+  const rcv = r2(sub+tax+oh+pf);
+  return {sub:r2(sub),tax,oh,pf,rcv,net:r2(rcv-n(c.deductible))};
+}
+function tradeSub(t){ return S.lines.filter(l=>l.trade===t).reduce((a,l)=>a+lineTotal(l),0); }
+function refreshTotals(){
+  $("#rcvTop").textContent=S.lines.length;
+  $("#claimTag").textContent = [S.claim.claimNo, S.claim.insured].filter(Boolean).join(" · ");
+  document.querySelectorAll("[data-tsub]").forEach(el=>el.textContent=S.lines.filter(l=>l.trade===el.dataset.tsub).length);
+  renderTabs();
+}
+
+/* ---------- Tabs ---------- */
+const TAB_LIST = [["claim","Claim & Areas"],...Object.entries(TRADES).map(([k,v])=>[k,v.short]),["equip","Equipment"],["moisture","Moisture"],["photos","Photos"],["agent","AI Agent"],["estimate","Scope Report"]];
+let cur = "claim";
+function renderTabs(){
+  $("#tabs").innerHTML = TAB_LIST.map(([k,label])=>{
+    const t=TRADES[k]; const cnt = t? S.lines.filter(l=>l.trade===k).length : (k==="estimate"? S.lines.length : k==="photos"? S.photos.length : k==="equip"? S.equip.length : k==="moisture"? moistSummary().points : null);
+    return `<button class="tab" role="tab" data-tab="${k}" aria-selected="${k===cur}" ${t?`style="--tc:var(${t.color})"`:""}>${t?'<span class="dot"></span>':""}${esc(label)}${cnt!=null?`<span class="n">${cnt}</span>`:""}</button>`;
+  }).join("");
+}
+function go(k){ cur=k; renderTabs(); render(); window.scrollTo({top:0}); }
+
+/* ---------- Render: shared pieces ---------- */
+function areaOptions(sel, filter){
+  return `<option value="">General</option>` + S.rooms.filter(r=>!filter||filter(r)).map(r=>`<option value="${r.id}" ${r.id===sel?"selected":""}>${esc(r.name)}</option>`).join("");
+}
+function checklistHTML(t){
+  const items = [...CHECKS[t], ...customChecks(t)]; const done = items.filter(([k])=>S.checks[k]!==undefined && S.checks[k]!=="").length;
+  return `<div class="panel" style="--tc:var(${TRADES[t].color})"><div class="row" style="justify-content:space-between"><h3>Inspection checklist</h3><span class="eyebrow">${done} of ${items.length} answered</span></div>
+  <div class="progress"><i style="width:${items.length?Math.round(done/items.length*100):0}%"></i></div>
+  <div class="checklist">${items.map(([k,label,type,opts,mine])=>{
+    const v=S.checks[k]??""; const del = mine ? `<button type="button" class="btn ghost small" data-delq="${t}:${k}" aria-label="Remove question: ${esc(label)}">✕</button>` : "";
+    const cls = "ck" + (type!==YN&&type!=="sel"&&type!=="num"?" wide":"") + (mine?" mine":"");
+    if(type===YN) return `<div class="${cls}"><div class="q">${esc(label)}</div><div class="ans"><div class="seg" role="group" aria-label="${esc(label)}">${["Yes","No","N/A"].map(o=>`<button type="button" data-ck="${k}" data-v="${o}" aria-pressed="${v===o}">${o}</button>`).join("")}</div>${del}</div></div>`;
+    if(type==="sel") return `<div class="${cls}"><div class="q">${esc(label)}</div><select id="ck_${k}" data-ckin="${k}">${opts.map(o=>`<option ${o===v?"selected":""} value="${esc(o)}">${o||"Select…"}</option>`).join("")}</select></div>`;
+    if(type==="num") return `<div class="${cls}"><div class="q">${esc(label)}</div><input id="ck_${k}" class="num" style="width:90px" inputmode="decimal" data-ckin="${k}" value="${esc(v)}"></div>`;
+    return `<div class="${cls}"><label class="q" for="ck_${k}">${esc(label)}</label><div class="ans"><input id="ck_${k}" type="text" data-ckin="${k}" value="${esc(v)}">${del}</div></div>`;
+  }).join("")}</div>
+  <div class="ck-add"><input type="text" id="nq_${t}" placeholder="Add your own question to this checklist…" aria-label="New question">
+    <select id="nqt_${t}" aria-label="Answer type"><option value="yn">Yes / No / N/A</option><option value="text">Written answer</option></select>
+    <label for="nqk_${t}"><input type="checkbox" id="nqk_${t}" checked> Every new claim</label>
+    <button type="button" class="btn small" data-addq="${t}">Add question</button></div></div>`;
+}
+let addArea = {water:"r1",fire:"r1",roof:"r4",interior:"r1",exterior:"r5"};
+function catalogHTML(t){
+  const area = addArea[t]; const rc = roomCalc(roomById(area));
+  const q=(catQ[t]||"").trim().toLowerCase(), words=q.split(/\s+/).filter(Boolean);
+  const all=[]; for(const tt in CATALOG) CATALOG[tt].forEach((i,idx)=>all.push([tt,idx,i]));
+  const rows = all.map(([tt,idx,i])=>{
+    const auto = rc && i[6] ? rc[i[6]] : "";
+    const hay=(i[0]+" "+i[1]+" "+i[2]+" "+TRADES[tt].short).toLowerCase();
+    const show = words.length ? words.every(w=>hay.includes(w)) : tt===t;
+    return `<tr data-cq="${esc(hay)}" data-ct="${tt}"${show?"":" hidden"}><td class="code"><b>${i[0]}</b> ${esc(i[1])}</td><td>${esc(i[2])}${tt!==t?` <span class="chip">${esc(TRADES[tt].short)}</span>`:""}</td>
+      <td><select class="w-act" id="ca_${tt}_${idx}" aria-label="Activity">${Object.keys(ACTS).map(a=>`<option value="${esc(a)}" ${a===i[5]?"selected":""} title="${ACTS[a]}">${esc(a)}</option>`).join("")}</select></td>
+      <td><input class="num w-qty" id="cq_${tt}_${idx}" inputmode="decimal" placeholder="${auto!==""?qfmt(auto):"qty"}" aria-label="Quantity"></td>
+      <td class="code">${i[3]}</td>
+      <td><button class="btn small" data-addcat="${tt}:${idx}" data-from="${t}">Add</button></td></tr>`;
+  }).join("");
+  return `<div class="panel" style="--tc:var(${TRADES[t].color})">
+    <div class="row" style="justify-content:space-between;margin-bottom:10px"><h3 style="margin:0">Add line items</h3>
+      <div class="row"><label class="flabel" for="aa_${t}">To area</label><select id="aa_${t}" data-addarea="${t}" style="width:auto">${areaOptions(area)}</select></div></div>
+    ${rc?`<div class="chips" style="margin-bottom:10px"><span class="chip">Walls <b>${qfmt(rc.walls)}</b> SF</span><span class="chip">Ceiling <b>${qfmt(rc.ceil)}</b> SF</span><span class="chip">Floor <b>${qfmt(rc.floor)}</b> SF</span><span class="chip">Perimeter <b>${qfmt(rc.perim)}</b> LF</span><span class="chip">Blank qty uses the grey room value</span></div>`:""}
+    <div class="catsearch"><label class="flabel" for="cs_${t}">Search</label><input id="cs_${t}" type="search" data-catq="${t}" value="${esc(catQ[t]||"")}" placeholder="All ${CATALOG_SIZE()} items: baseboard, LVP, drip edge…" autocomplete="off"></div>
+    <div class="tscroll"><table class="cat-table"><thead><tr><th>CAT SEL</th><th>Description</th><th>Act</th><th class="r">Qty</th><th>Unit</th><th></th></tr></thead><tbody data-catrows="${t}">${rows}</tbody></table><div class="empty" data-catnone="${t}" ${all.some(([tt,idx,i])=>words.length?words.every(w=>(i[0]+" "+i[1]+" "+i[2]+" "+TRADES[tt].short).toLowerCase().includes(w)):tt===t)?"hidden":""}>No items match. Try another word or add a custom line below.</div></div>
+    <p class="note">Activity codes: + replace, − remove, &amp; remove &amp; replace, R detach &amp; reset, C clean. Selector codes are starting points; confirm them in Xactimate.</p>
+  </div>`;
+}
+function linesTableHTML(lines, showTrade){
+  if(!lines.length) return `<div class="tscroll"><div class="empty">No line items yet. Add from the list above or let the AI Agent propose them.</div></div>`;
+  return `<div class="tscroll"><table class="lines-table"><thead><tr>${showTrade?"<th>Trade</th>":""}<th>Area</th><th>CAT</th><th>SEL</th><th>Act</th><th>Description</th><th class="r">Qty</th><th>Unit</th><th></th></tr></thead><tbody>
+  ${lines.map(l=>`<tr style="--tc:var(${TRADES[l.trade]?.color||"--accent"})">
+    ${showTrade?`<td><span class="dot"></span> ${esc(TRADES[l.trade]?.short||l.trade)}</td>`:""}
+    <td><select class="w-area" data-l="${l.id}" data-f="area" aria-label="Area">${areaOptions(l.area)}</select></td>
+    <td><input class="w-cat code" data-l="${l.id}" data-f="cat" value="${esc(l.cat)}" aria-label="Category"></td>
+    <td><input class="w-sel code" data-l="${l.id}" data-f="sel" value="${esc(l.sel)}" aria-label="Selector"></td>
+    <td><select class="w-act" data-l="${l.id}" data-f="act" aria-label="Activity">${Object.keys(ACTS).map(a=>`<option value="${esc(a)}" ${a===l.act?"selected":""}>${esc(a)}</option>`).join("")}</select></td>
+    <td class="desc"><input data-l="${l.id}" data-f="desc" value="${esc(l.desc)}" aria-label="Description"></td>
+    <td><input class="num w-qty" data-l="${l.id}" data-f="qty" inputmode="decimal" value="${esc(l.qty)}" aria-label="Quantity"></td>
+    <td><input class="w-unit code" data-l="${l.id}" data-f="unit" value="${esc(l.unit)}" aria-label="Unit"></td>
+    <td><button class="btn ghost small" data-del="${l.id}" aria-label="Remove line">✕</button></td></tr>`).join("")}
+  </tbody></table></div>`;
+}
+
+/* ---------- Render: pages ---------- */
+function exampleBanner(){
+  if(!S.example) return "";
+  return `<div class="banner"><p><b>Example claim loaded.</b> The insured, rooms and quantities are sample values so you can see how the checklist builds a scope. Start a new claim when you're ready.</p>
+  <span id="newWrap"><button class="btn" data-act="newclaim">Start new claim</button></span></div>`;
+}
+function pageClaim(){
+  const c=S.claim; const f=(k,label,type="text",extra="")=>`<div class="field"><label for="c_${k}">${label}</label><input id="c_${k}" type="${type}" data-c="${k}" value="${esc(c[k])}" ${extra}></div>`;
+  return `${exampleBanner()}
+  <div class="sec-head"><div><span class="eyebrow">Step 1</span><h2>Claim &amp; areas</h2><p>Claim header for the report, then the rooms and areas you'll scope. Room dimensions drive wall, ceiling, floor and perimeter quantities. Each door takes 21 SF off the walls and 3 LF off the perimeter; each window takes 15 SF off the walls.</p></div></div>
+  ${offlineBanner()}<div class="panel"><h3>Claim information</h3><div class="fields">
+    ${f("insured","Insured")}${f("address","Property address")}${f("phone","Insured phone","tel")}${f("carrier","Carrier")}
+    ${f("claimNo","Claim #")}${f("policyNo","Policy #")}${f("dol","Date of loss","date")}${f("insp","Inspection date","date")}
+    ${f("adjuster","Adjuster")}${f("estimator","Estimator")}${f("cause","Cause of loss")}
+  </div></div>
+  <div class="tscroll"><table class="rooms"><thead><tr><th>Name</th><th>Type</th><th class="r">L (ft)</th><th class="r">W (ft)</th><th class="r">H (ft)</th><th class="r">Doors</th><th class="r">Windows</th><th class="r">Walls SF</th><th class="r">Floor SF</th><th class="r">Perim LF</th><th class="r">Lines</th><th></th></tr></thead><tbody>
+  ${S.rooms.map(r=>{ const rc=roomCalc(r); const cnt=S.lines.filter(l=>l.area===r.id).length; return `<tr>
+    <td><input data-r="${r.id}" data-f="name" value="${esc(r.name)}" aria-label="Area name" style="min-width:140px"></td>
+    <td><select data-r="${r.id}" data-f="kind" aria-label="Type" style="width:auto"><option value="room" ${r.kind==="room"?"selected":""}>Room</option><option value="roof" ${r.kind==="roof"?"selected":""}>Roof</option><option value="elev" ${r.kind==="elev"?"selected":""}>Elevation</option></select></td>
+    ${["L","W","H","doors","windows"].map(k=>`<td>${r.kind==="room"?`<input class="num" style="width:66px" inputmode="decimal" data-r="${r.id}" data-f="${k}" value="${esc(r[k]??(k.length>1?0:""))}" aria-label="${{L:"Length",W:"Width",H:"Height",doors:"Doors",windows:"Windows"}[k]}">`:""}</td>`).join("")}
+    <td class="money" data-rc="${r.id}:walls">${rc?qfmt(rc.walls):"—"}</td><td class="money" data-rc="${r.id}:floor">${rc?qfmt(rc.floor):"—"}</td><td class="money" data-rc="${r.id}:perim">${rc?qfmt(rc.perim):"—"}</td>
+    <td class="money">${cnt}</td><td><button class="btn ghost small" data-delroom="${r.id}" aria-label="Remove area" ${cnt?'disabled title="Move or remove its lines first"':""}>✕</button></td></tr>`; }).join("")}
+  </tbody></table></div></div>`;
+}
+function tradeHead(t){
+  const T=TRADES[t];
+  return `<div class="sec-head" style="--tc:var(${T.color})"><div><span class="eyebrow"><span class="dot"></span> ${esc(T.name)}</span><h2>${esc(T.name)} scope</h2></div><span class="spacer"></span><div class="rcv"><span class="lbl">Line items</span><span class="val" data-tsub="${t}">${S.lines.filter(l=>l.trade===t).length}</span></div></div>`;
+}
+function pageWater(){
+  const W=S.water, c=waterCalc(W);
+  return `${exampleBanner()}${tradeHead("water")}
+  <div class="grid2">${checklistHTML("water")}
+   <div class="panel"><h3>Drying equipment calculator</h3><div class="fields">
+    <div class="field"><label for="wa">Affected floor SF</label><input id="wa" class="num" data-w="area" inputmode="decimal" value="${esc(W.area)}"></div>
+    <div class="field"><label for="wc">Water class</label><select id="wc" data-w="cls">${["1","2","3","4"].map(k=>`<option ${W.cls===k?"selected":""} value="${k}">Class ${k}</option>`).join("")}</select></div>
+    <div class="field"><label for="wr">Affected rooms</label><input id="wr" class="num" data-w="rooms" inputmode="decimal" value="${esc(W.rooms)}"></div>
+    <div class="field"><label for="wd">Drying days</label><input id="wd" class="num" data-w="days" inputmode="decimal" value="${esc(W.days)}"></div>
+    <div class="field"><label for="wp">Dehu rating (PPD)</label><input id="wp" class="num" data-w="dehuPints" inputmode="decimal" value="${esc(W.dehuPints)}"></div>
+    <div class="field"><label for="wt">Add to area</label><select id="wt" data-w="target">${areaOptions(W.target||"r1",r=>r.kind==="room")}</select></div>
+   </div>
+   <div class="calc-out" id="wout">${waterOut(c)}</div>
+   <div class="row"><button class="btn primary" data-act="watercalc">Add to equipment log</button></div>
+   <p class="note">Rule of thumb: air movers = 1 per room + 1 per 50–70 SF of wet floor; dehumidification from cubic feet ÷ class factor (100 / 40 / 30 / 25), 8 ft ceilings assumed. Verify against IICRC S500 and your daily readings.</p></div>
+  </div>
+  ${suggestHTML("water")}${photosHTML("water")}${catalogHTML("water")}<div class="panel"><h3>Water mitigation lines</h3>${linesTableHTML(S.lines.filter(l=>l.trade==="water"))}<div class="row" style="margin-top:10px"><button class="btn small" data-custom="water">+ Custom line</button></div></div>`;
+}
+function waterOut(c){ return `<div><span>Air movers</span><b>${c.am}</b></div><div><span>Dehus</span><b>${c.dehu}</b></div><div><span>AM days (EA)</span><b>${c.amDays}</b></div><div><span>Dehu days (EA)</span><b>${c.dhDays}</b></div><div><span>Pints/day need</span><b>${c.pints}</b></div>`; }
+function pageFire(){
+  return `${exampleBanner()}${tradeHead("fire")}<div class="grid2">${checklistHTML("fire")}
+  <div class="panel"><h3>Fire &amp; smoke notes</h3><p class="note" style="margin-top:0">Wet smoke and protein residue usually move cleaning from soot sponge to heavy wash plus sealer. If the HVAC ran, add duct cleaning per register and test unaffected rooms before excluding them.</p>
+  <div class="field" style="margin-top:12px"><label for="fnotes">Fire scene notes</label><textarea id="fnotes" data-ckin="f_notes">${esc(S.checks.f_notes||"")}</textarea></div></div></div>
+  ${suggestHTML("fire")}${photosHTML("fire")}${catalogHTML("fire")}<div class="panel"><h3>Fire &amp; smoke lines</h3>${linesTableHTML(S.lines.filter(l=>l.trade==="fire"))}<div class="row" style="margin-top:10px"><button class="btn small" data-custom="fire">+ Custom line</button></div></div>`;
+}
+function pageRoof(){
+  const R=S.roof; const fld=(k,l)=>`<div class="field"><label for="rf_${k}">${l}</label><input id="rf_${k}" class="num" inputmode="decimal" data-rf="${k}" value="${esc(R[k])}"></div>`;
+  return `${exampleBanner()}${tradeHead("roof")}<div class="grid2">${checklistHTML("roof")}
+  <div class="panel"><h3>Roof measurements</h3><div class="fields">
+   ${fld("sq","Roof area (SQ)")}${fld("waste","Waste %")}${fld("pitch","Pitch (x/12)")}${fld("stories","Stories")}${fld("layers","Layers")}
+   ${fld("eaves","Eaves LF")}${fld("rakes","Rakes LF")}${fld("ridge","Ridge LF")}${fld("hip","Hips LF")}${fld("valley","Valleys LF")}
+   ${fld("step","Step flashing LF")}${fld("vent","Ridge vent LF")}${fld("pipes","Pipe jacks (EA)")}
+   <div class="field"><label for="rf_area">Add to area</label><select id="rf_area" data-rf="area">${areaOptions(R.area||"r4",r=>r.kind==="roof")}</select></div>
+  </div>
+  <div class="row" style="margin-top:12px"><button class="btn primary" data-act="roofcalc">Build roof lines</button><span class="status">Replaces earlier lines from this calculator.</span></div>
+  <p class="note">Builds shingle R&amp;R (waste rounded up to ⅓ SQ), felt, drip edge and starter on eaves + rakes, ridge cap on ridge + hips, ice &amp; water at 3 ft on eaves and valleys, steep (7/12+) and high (2+ stories) charges, dumpster and permit.</p></div></div>
+  ${suggestHTML("roof")}${photosHTML("roof")}${catalogHTML("roof")}<div class="panel"><h3>Roofing lines</h3>${linesTableHTML(S.lines.filter(l=>l.trade==="roof"))}<div class="row" style="margin-top:10px"><button class="btn small" data-custom="roof">+ Custom line</button></div></div>`;
+}
+function pageInterior(){
+  return `${exampleBanner()}${tradeHead("interior")}<div class="grid2">${checklistHTML("interior")}
+  <div class="panel"><h3>Room quantities</h3><div class="tscroll"><table><thead><tr><th>Room</th><th class="r">Walls SF</th><th class="r">Ceiling SF</th><th class="r">Floor SF</th><th class="r">Perim LF</th></tr></thead><tbody>
+  ${S.rooms.filter(r=>r.kind==="room").map(r=>{const c=roomCalc(r);return `<tr><td>${esc(r.name)}</td><td class="money">${qfmt(c.walls)}</td><td class="money">${qfmt(c.ceil)}</td><td class="money">${qfmt(c.floor)}</td><td class="money">${qfmt(c.perim)}</td></tr>`}).join("")||`<tr><td colspan="5" class="empty">Add rooms on the Claim &amp; Areas tab.</td></tr>`}
+  </tbody></table></div><p class="note">Edit dimensions on the Claim &amp; Areas tab. Doors and windows entered for a room are deducted from its walls and perimeter.</p></div></div>
+  ${suggestHTML("interior")}${photosHTML("interior")}${catalogHTML("interior")}<div class="panel"><h3>Interior lines</h3>${linesTableHTML(S.lines.filter(l=>l.trade==="interior"))}<div class="row" style="margin-top:10px"><button class="btn small" data-custom="interior">+ Custom line</button></div></div>`;
+}
+function pageExterior(){
+  return `${exampleBanner()}${tradeHead("exterior")}<div class="grid2">${checklistHTML("exterior")}
+  <div class="panel"><h3>Elevation notes</h3><p class="note" style="margin-top:0">Scope each elevation as its own area so the report reads front, rear, left, right the way carriers expect.</p>
+  <div class="field" style="margin-top:12px"><label for="enotes">Exterior notes</label><textarea id="enotes" data-ckin="e_notes">${esc(S.checks.e_notes||"")}</textarea></div></div></div>
+  ${suggestHTML("exterior")}${photosHTML("exterior")}${catalogHTML("exterior")}<div class="panel"><h3>Exterior lines</h3>${linesTableHTML(S.lines.filter(l=>l.trade==="exterior"))}<div class="row" style="margin-top:10px"><button class="btn small" data-custom="exterior">+ Custom line</button></div></div>`;
+}
+
+/* ---------- Equipment log ---------- */
+const EQUIP = {
+  am:{name:"Air mover",cat:"WTR",sel:"DRY",rate:35,trade:"water"},
+  dhl:{name:"Dehumidifier - Large (LGR)",cat:"WTR",sel:"DHM",rate:95,trade:"water"},
+  dhx:{name:"Dehumidifier - XLarge (LGR)",cat:"WTR",sel:"DHMXL",rate:125,trade:"water"},
+  des:{name:"Desiccant dehumidifier",cat:"WTR",sel:"DESIC",rate:225,trade:"water"},
+  afd:{name:"Air scrubber / negative air",cat:"WTR",sel:"NAFAN",rate:85,trade:"water"},
+  wcd:{name:"Wall cavity / floor drying system",cat:"WTR",sel:"WCDS",rate:75,trade:"water"},
+  heat:{name:"Heat drying unit",cat:"WTR",sel:"HEAT",rate:150,trade:"water"},
+  hyd:{name:"Hydroxyl generator",cat:"CLN",sel:"HYD",rate:110,trade:"fire"},
+  ozn:{name:"Ozone generator",cat:"CLN",sel:"OZN",rate:95,trade:"fire"},
+  other:{name:"Other equipment",cat:"WTR",sel:"",rate:0,trade:"water"}
+};
+let equipArea = "r1";
+const pad2 = v => String(v).padStart(2,"0");
+function nowLocal(){ const d=new Date(); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`; }
+function equipHours(q){ if(!q.placed) return null; const a=new Date(q.placed), b=q.removed? new Date(q.removed) : new Date(); const h=(b-a)/36e5; return isFinite(h)&&h>0? h : 0; }
+function equipDays(q){ if(String(q.days??"").trim()!=="") return Math.max(0,n(q.days)); const h=equipHours(q); return h==null? 0 : Math.max(1,Math.ceil(h/24 - 0.01)); }
+function equipCost(q){ return r2(n(q.units)*equipDays(q)*n(q.rate)); }
+function addEquip(type, area, o={}){ const t=EQUIP[type]||EQUIP.other; S.equip.push({id:uid(),type,name:t.name,area:area||"",units:o.units??1,tag:"",placed:o.days?"":nowLocal(),removed:"",days:o.days??"",rate:t.rate,cat:t.cat,sel:t.sel,trade:t.trade}); }
+function equipLines(list){
+  const g={}; for(const q of list){ const d=equipDays(q), u=n(q.units); if(!(d*u>0)) continue;
+    const k=[q.area,q.cat,q.sel,q.rate,q.name].join("|"); (g[k] ||= {q,qty:0}).qty += u*d; }
+  return Object.values(g).map(({q,qty})=>({id:uid(),trade:q.trade||"water",area:q.area,cat:q.cat,sel:q.sel,act:"+",desc:`${q.name} (per 24 hour period)`,qty:r2(qty),unit:"EA",price:n(q.rate),note:"Equipment log"}));
+}
+function syncEquip(){ S.lines=S.lines.filter(l=>l.note!=="Equipment log"); S.lines.push(...equipLines(S.equip)); }
+function equipTotals(){ let units=0,ud=0,cost=0,onsite=0; for(const q of S.equip){ units+=n(q.units); ud+=n(q.units)*equipDays(q); cost+=equipCost(q); if(!q.removed && String(q.days??"").trim()==="" && q.placed) onsite+=n(q.units); } return {units,ud,cost:r2(cost),onsite}; }
+function equipSummary(t){ return `<div><span>Units logged</span><b>${qfmt(t.units)}</b></div><div><span>Unit-days</span><b>${qfmt(t.ud)}</b></div><div><span>Still on site</span><b>${qfmt(t.onsite)}</b></div>`; }
+function updateEquipRow(q){ const d=document.querySelector(`[data-eqd="${q.id}"]`), c=document.querySelector(`[data-eqc="${q.id}"]`); if(d) d.textContent=equipDays(q); const tt=$("#eqTot"); if(tt) tt.innerHTML=equipSummary(equipTotals()); }
+function pageEquip(){
+  const T=equipTotals();
+  const rows=S.equip.map(q=>{ const live=!q.removed && String(q.days??"").trim()==="" && q.placed; return `<tr>
+    <td><select data-eq="${q.id}" data-f="type" aria-label="Equipment type" style="min-width:190px">${Object.entries(EQUIP).map(([k,v])=>`<option value="${k}" ${k===q.type?"selected":""}>${esc(v.name)}</option>`).join("")}</select>
+      ${q.type==="other"?`<input data-eq="${q.id}" data-f="name" value="${esc(q.name)}" aria-label="Equipment name" style="margin-top:4px">`:""}</td>
+    <td><select class="w-area" data-eq="${q.id}" data-f="area" aria-label="Area">${areaOptions(q.area)}</select></td>
+    <td><input class="num" style="width:60px" inputmode="decimal" data-eq="${q.id}" data-f="units" value="${esc(q.units)}" aria-label="Units"></td>
+    <td><input class="w-tag" data-eq="${q.id}" data-f="tag" value="${esc(q.tag)}" placeholder="Asset tag / serial" aria-label="Asset tag"></td>
+    <td><input class="w-dt" type="datetime-local" data-eq="${q.id}" data-f="placed" value="${esc(q.placed)}" aria-label="Date placed"></td>
+    <td><input class="w-dt" type="datetime-local" data-eq="${q.id}" data-f="removed" value="${esc(q.removed)}" aria-label="Date removed">${live?`<div class="row" style="margin-top:4px"><span class="onsite">On site</span><button class="btn small" data-act="removenow" data-id="${q.id}">Removed now</button></div>`:""}</td>
+    <td><input class="num" style="width:64px" inputmode="decimal" data-eq="${q.id}" data-f="days" value="${esc(q.days)}" placeholder="auto" aria-label="Days override"></td>
+    <td class="money" data-eqd="${q.id}">${equipDays(q)}</td>
+    <td><div class="row" style="flex-wrap:nowrap;gap:4px"><span class="code"><b>${esc(q.cat)}</b></span><input class="w-sel code" data-eq="${q.id}" data-f="sel" value="${esc(q.sel)}" aria-label="Selector"></div></td>
+    <td><button class="btn ghost small" data-act="delequip" data-id="${q.id}" aria-label="Remove equipment">✕</button></td></tr>`; }).join("");
+  return `${exampleBanner()}<div class="sec-head" style="--tc:var(--t-water)"><div><span class="eyebrow"><span class="dot"></span> Drying &amp; air equipment</span><h2>Equipment log</h2><p>Log each piece of equipment with where it went, and when it was set and pulled. Days count in 24-hour periods from placed to removed, and every entry adds to the scope automatically.</p></div></div>
+  <div class="calc-out" id="eqTot" style="margin-top:0">${equipSummary(T)}</div>
+  <div class="panel"><div class="row" style="justify-content:space-between;margin-bottom:10px"><h3 style="margin:0">Add equipment</h3>
+    <div class="row"><label class="flabel" for="eqArea">To area</label><select id="eqArea" data-equiparea style="width:auto">${areaOptions(equipArea)}</select></div></div>
+    <div class="row">${Object.entries(EQUIP).map(([k,v])=>`<button class="btn small" data-act="addequip" data-type="${k}">+ ${esc(v.name)}</button>`).join("")}</div>
+    <p class="note">New entries start on site from right now. Change the placed time if it was set earlier.</p></div>
+  <div class="panel"><div class="row" style="justify-content:space-between;margin-bottom:10px"><h3 style="margin:0">Equipment on this job</h3>${T.onsite?`<button class="btn small" data-act="pullall">Mark all removed now</button>`:""}</div>
+  ${S.equip.length?`<div class="tscroll"><table class="eq-table"><thead><tr><th>Equipment</th><th>Area</th><th class="r">Units</th><th>Tag / serial</th><th>Placed</th><th>Removed</th><th class="r">Days override</th><th class="r">Days</th><th>CAT SEL</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:`<div class="tscroll"><div class="empty">No equipment logged yet. Add it above, or use the drying calculator on the Water tab.</div></div>`}
+  <p class="note">Leave Days override blank to count from the dates; equipment with no removed time counts through today. Scope lines tagged "Equipment log" are rebuilt from this table, so make equipment changes here. Selector codes are placeholders; confirm them in Xactimate.</p></div>`;
+}
+function equipSheet(){
+  if(!S.equip.length) return "";
+  const T=equipTotals(); const fd=v=>v? new Date(v).toLocaleString("en-US",{month:"numeric",day:"numeric",hour:"numeric",minute:"2-digit"}) : "";
+  return `<div class="area-h">Equipment log <small>${qfmt(T.ud)} unit-days</small></div><div class="tscroll"><table class="rep-table"><thead><tr><th>Equipment</th><th>Area</th><th class="r">Units</th><th>Tag</th><th>Placed</th><th>Removed</th><th class="r">Days</th></tr></thead><tbody>
+  ${S.equip.map(q=>`<tr><td>${esc(q.name)}<div class="code">${esc(q.cat)} ${esc(q.sel)}</div></td><td>${esc(areaName(q.area))}</td><td class="money">${qfmt(q.units)}</td><td class="code">${esc(q.tag)}</td><td>${fd(q.placed)}</td><td>${q.removed?fd(q.removed):(String(q.days??"").trim()?"":"On site")}</td><td class="money">${equipDays(q)}</td></tr>`).join("")}
+  </tbody><tfoot><tr><td>Total equipment</td><td></td><td class="money">${qfmt(T.units)}</td><td></td><td></td><td></td><td class="money">${qfmt(T.ud)}</td></tr></tfoot></table></div>`;
+}
+
+/* ---------- Photos ---------- */
+let assetsFn=null, photoArea={}, photoFull=false;
+const PHOTO_TRADES = {...Object.fromEntries(Object.entries(TRADES).map(([k,v])=>[k,v.short])),general:"General"};
+function photoNo(p){ return S.photos.indexOf(p)+1; }
+function photosHTML(t){
+  const all = t==="all"; const list = all? S.photos : S.photos.filter(p=>p.trade===t);
+  const area = photoArea[t] ?? (all? "" : addArea[t]||"");
+  const tc = TRADES[t]? `style="--tc:var(${TRADES[t].color})"` : "";
+  return `<div class="panel" ${tc}><div class="row" style="justify-content:space-between;margin-bottom:10px"><h3 style="margin:0">Photos${all?"":" · "+esc(TRADES[t].short)}</h3><span class="eyebrow">${list.length} attached</span></div>
+  <div class="row" style="margin-bottom:10px">
+    <label class="flabel" for="pa_${t}">Attach to area</label><select id="pa_${t}" data-photoarea="${t}" style="width:auto">${areaOptions(area)}</select>
+    ${all?`<label class="flabel" for="pt_${t}">Trade</label><select id="pt_${t}" data-phototrade style="width:auto">${Object.entries(PHOTO_TRADES).map(([k,v])=>`<option value="${k}" ${k===(photoArea._trade||"general")?"selected":""}>${v}</option>`).join("")}</select>`:""}
+  </div>
+  <label class="drop" data-drop="${t}"><b>Add photos</b><span>Tap to take or choose photos, or drop image files here</span>
+    <input type="file" accept="image/*" multiple data-photoin="${t}" aria-label="Add photos"></label>
+  ${photoFull?`<p class="note" style="color:var(--warn)">This browser is out of room to keep photos between visits. Use Save claim file on the Estimate tab to keep them.</p>`:""}
+  ${list.length?`<div class="pgrid">${list.map(p=>`<div class="pcard" style="--tc:var(${TRADES[p.trade]?.color||"--muted"})">
+    <div class="ph"><img src="${esc(p.src)}" alt="${esc(p.caption||"Damage photo")}" loading="lazy"><span class="num">#${photoNo(p)}</span><span class="tr"></span></div>
+    <div class="pb"><input data-p="${p.id}" data-f="caption" value="${esc(p.caption)}" placeholder="Caption, e.g. Hail hits, rear slope" aria-label="Caption">
+      <select data-p="${p.id}" data-f="area" aria-label="Area">${areaOptions(p.area)}</select>
+      ${all?`<select data-p="${p.id}" data-f="trade" aria-label="Trade">${Object.entries(PHOTO_TRADES).map(([k,v])=>`<option value="${k}" ${k===p.trade?"selected":""}>${v}</option>`).join("")}</select>`:""}
+      <div class="row"><span class="status">${esc(p.taken||"")}</span><button class="btn ghost small" data-delphoto="${p.id}">Remove</button></div></div></div>`).join("")}</div>`:""}
+  </div>`;
+}
+function shrink(file, max, q){
+  return new Promise((res,rej)=>{ const url=URL.createObjectURL(file); const img=new Image();
+    img.onload=()=>{ const s=Math.min(1,max/Math.max(img.width,img.height)); const c=document.createElement("canvas"); c.width=Math.round(img.width*s); c.height=Math.round(img.height*s);
+      c.getContext("2d").drawImage(img,0,0,c.width,c.height); URL.revokeObjectURL(url); c.toBlob(b=>b?res({blob:b,data:c.toDataURL("image/jpeg",q)}):rej(),"image/jpeg",q); };
+    img.onerror=()=>{URL.revokeObjectURL(url);rej();}; img.src=url; });
+}
+async function addPhotos(files, t){
+  const imgs=[...files].filter(f=>f.type.startsWith("image/")); if(!imgs.length){ toast("Choose image files (JPG, PNG, HEIC may not work)"); return; }
+  const trade = t==="all"? (photoArea._trade||"general") : t; const area = photoArea[t] ?? (t==="all"?"":addArea[t]||"");
+  toast(`Adding ${imgs.length} photo${imgs.length>1?"s":""}…`); let ok=0;
+  for(const f of imgs){
+    try{
+      const {blob,data}=await shrink(f, assetsFn?1600:1100, assetsFn?0.85:0.72);
+      let src=data, assetId=null;
+      if(assetsFn){ try{ const a=await assetsFn.upload(blob); src=a.url; assetId=a.id; }catch(e){} }
+      S.photos.push({id:uid(),src,assetId,area,trade,caption:"",taken:new Date(f.lastModified||Date.now()).toLocaleDateString()}); ok++;
+    }catch(e){}
+  }
+  savePhotosNow(); const y=window.scrollY; render(); window.scrollTo({top:y});
+  toast(ok===imgs.length? `${ok} photo${ok>1?"s":""} attached` : `${ok} of ${imgs.length} photos attached; the rest couldn't be read`);
+}
+function savePhotosNow(){ try{ localStorage.setItem(KEY,JSON.stringify(S)); photoFull=false; }catch(e){ photoFull = /quota/i.test(e?.name||"")||e?.code===22; } }
+async function srcToBlob(src){ const r=await fetch(src); return await r.blob(); }
+async function srcToData(src){ if(src.startsWith("data:")) return src; try{ const b=await srcToBlob(src); return await new Promise(res=>{const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=()=>res(""); fr.readAsDataURL(b);}); }catch(e){ return ""; } }
+
+/* ---------- AI Agent ---------- */
+let sampleFn=null, sampleReady=false, dlFn=null, proposals=null, ctl=null;
+function pageAgent(){
+  const avail = sampleFn ? "" : `<div class="banner"><p>${sampleReady?"The AI agent runs in the online version of this checklist in Claude. Everything else works here, offline.":"Connecting the AI agent…"}</p></div>`;
+  return `${exampleBanner()}<div class="sec-head"><div><span class="eyebrow">AI Agent</span><h2>Scope from notes &amp; photos</h2><p>Paste field notes and add damage photos. The agent reads your checklist answers, rooms and existing lines, then proposes Xactimate line items for you to accept, flags gaps, and writes the scope narrative.</p></div></div>${avail}
+  <div class="grid2"><div class="panel"><h3>Field notes</h3>
+   <textarea id="agentNotes" data-notes style="min-height:180px" placeholder="Describe what you found, room by room…">${esc(S.notes)}</textarea>
+   <div class="row" style="margin-top:12px"><label class="row" style="gap:6px" for="usePhotos"><input type="checkbox" id="usePhotos" style="width:auto" ${S.photos.length?"checked":"disabled"}> Send claim photos to the agent (${S.photos.length} attached)</label>
+   <button class="btn small" data-tab="photos">Manage photos</button></div>
+   <div class="thumbs">${S.photos.slice(-12).map(p=>`<img src="${esc(p.src)}" alt="${esc(p.caption||"Claim photo")}">`).join("")}</div>
+   <div class="row" style="margin-top:12px"><button class="btn primary" data-act="analyze" ${sampleFn?"":"disabled"}>Propose line items</button><button class="btn" data-act="review" ${sampleFn?"":"disabled"}>Review estimate for misses</button><button class="btn ghost" data-act="stop" hidden id="stopBtn">Stop</button></div>
+   <p class="status" id="agentStatus"></p></div>
+  <div class="panel"><h3>Findings</h3><div id="findings">${findingsHTML()}</div></div></div>
+  <div class="panel"><div class="row" style="justify-content:space-between;margin-bottom:10px"><h3 style="margin:0">Proposed line items</h3><div class="row" id="propActions"></div></div><div id="props">${propsHTML()}</div></div>
+  <div class="panel"><div class="row" style="justify-content:space-between;margin-bottom:10px"><h3 style="margin:0">Scope narrative</h3><div class="row"><button class="btn" data-act="narrative" ${sampleFn?"":"disabled"}>Write narrative</button><button class="btn small" data-act="copynarr">Copy</button></div></div>
+   <textarea id="narr" data-narr style="min-height:220px" placeholder="The narrative appears here and goes into the report. You can edit it.">${esc(S.narrative)}</textarea></div>`;
+}
+function findingsHTML(){
+  if(!proposals) return `<p class="status">Flags and open questions from the agent appear here.</p>`;
+  const f=proposals.flags||[], q=proposals.questions||[];
+  return `${f.length?`<div class="eyebrow">Flags</div><ul class="flags">${f.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}${q.length?`<div class="eyebrow" style="margin-top:10px">Questions to resolve</div><ul class="flags">${q.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}${!f.length&&!q.length?'<p class="status">No flags.</p>':""}`;
+}
+function propsHTML(){
+  const P = proposals?.lines||[];
+  setTimeout(()=>{ const pa=$("#propActions"); if(pa) pa.innerHTML = P.length?`<button class="btn small" data-act="propall">Select all</button><button class="btn primary small" data-act="propadd">Add selected to scope</button>`:""; },0);
+  if(!P.length) return `<div class="tscroll"><div class="empty">No proposals yet.</div></div>`;
+  return `<div class="tscroll"><table class="prop-table"><thead><tr><th></th><th>Trade</th><th>Area</th><th>CAT SEL</th><th>Act</th><th>Description</th><th class="r">Qty</th><th>Unit</th><th>Why</th></tr></thead><tbody>
+  ${P.map((p,i)=>`<tr style="--tc:var(${TRADES[p.trade]?.color||"--accent"})"><td><input type="checkbox" id="pp_${i}" data-pp="${i}" ${p.on?"checked":""} style="width:auto" aria-label="Include"></td>
+  <td><span class="dot"></span> ${esc(TRADES[p.trade]?.short||p.trade)}</td><td>${esc(areaName(p.area))}</td><td class="code"><b>${esc(p.cat)}</b> ${esc(p.sel)}</td><td class="code">${esc(p.act)}</td><td>${esc(p.desc)}</td><td class="money">${qfmt(p.qty)}</td><td class="code">${esc(p.unit)}</td><td style="color:var(--muted);font-size:12.5px;min-width:200px">${esc(p.reason||"")}</td></tr>`).join("")}</tbody></table></div>`;
+}
+function contextBlock(){
+  const rooms = S.rooms.map(r=>{const c=roomCalc(r);return `- ${r.name} (${r.kind})${c?`: ${r.L}x${r.W}x${r.H} ft, ${n(r.doors)} doors, ${n(r.windows)} windows; walls ${c.walls} SF, ceiling ${c.ceil} SF, floor ${c.floor} SF, perimeter ${c.perim} LF`:""}`}).join("\n");
+  const checks = Object.entries(CHECKS).map(([t,items])=>`${TRADES[t].name}:\n`+[...items,...customChecks(t)].map(([k,l])=>`  - ${l}: ${S.checks[k]||"(blank)"}`).join("\n")).join("\n");
+  const lines = S.lines.map(l=>`- [${areaName(l.area)}] ${l.cat} ${l.sel} ${l.act} ${l.qty} ${l.unit} — ${l.desc}`).join("\n")||"(none)";
+  const cat = Object.entries(CATALOG).map(([t,items])=>items.map(i=>`${t} | ${i[0]} ${i[1]} | ${i[5]} | ${i[3]} | ${i[2]}`).join("\n")).join("\n");
+  return `CLAIM: ${S.claim.insured}, ${S.claim.address}. Cause: ${S.claim.cause}. Date of loss ${S.claim.dol}.
+AREAS (use these exact names):\n${rooms}
+INSPECTION CHECKLIST:\n${checks}
+FIRE NOTES: ${S.checks.f_notes||""}\nEXTERIOR NOTES: ${S.checks.e_notes||""}
+ROOF MEASUREMENTS: ${JSON.stringify(S.roof)}\nMOISTURE READINGS (latest per point):\n${(()=>{ const pts={}; moist().forEach(m=>{ const k=pointKey(m); if(!pts[k]||m.date>=pts[k].date) pts[k]=m; }); return Object.values(pts).map(m=>`- ${areaName(m.area)} ${m.point} (${m.material}): ${m.reading||"?"} vs goal ${m.goal||"?"} on ${m.date}`).join("\n")||"(none)"; })()}\nEQUIPMENT LOG (already billed as lines):\n${S.equip.map(q=>`- ${q.units} x ${q.name} in ${areaName(q.area)}, ${equipDays(q)} days${q.removed?"":" (still on site)"}`).join("\n")||"(none)"}
+LINES ALREADY IN ESTIMATE:\n${lines}
+CATALOG (trade | CAT SEL | default activity | unit | description):\n${cat}`;
+}
+const JSON_SPEC = `Reply with only JSON: {"lines":[{"trade":"water|fire|roof|interior|exterior","area":"<exact area name or General>","cat":"WTR","sel":"DRY","act":"+|-|&|R|C","desc":"Xactimate-style description","qty":12,"unit":"SF|LF|SQ|EA|HR|DA","reason":"one short sentence citing the evidence"}],"flags":["..."],"questions":["..."]}`;
+async function runAgent(mode){
+  if(!sampleFn) return;
+  const st=$("#agentStatus"); st.className="status"; st.textContent="Thinking… this can take up to a minute.";
+  $("#stopBtn").hidden=false; ctl=new AbortController();
+  let photos=[], photoKey="";
+  if($("#usePhotos")?.checked && S.photos.length){
+    let max=5; try{ const L=await sampleFn.limits(); max = L?.images?.maxCount || 0; }catch(e){ max=0; }
+    const pick = S.photos.slice(-max);
+    for(const p of pick){ try{ photos.push(await srcToBlob(p.src)); }catch(e){} }
+    photoKey = pick.map(p=>`Photo #${photoNo(p)}: ${areaName(p.area)} / ${PHOTO_TRADES[p.trade]||p.trade}${p.caption?" — "+p.caption:""}`).join("\n");
+    if(S.photos.length>pick.length) st.textContent=`Thinking… sending the ${pick.length} newest of ${S.photos.length} photos.`;
+  }
+  const task = mode==="review"
+    ? `Review this property-claim scope for commonly missed or inconsistent Xactimate items (e.g. drip edge, starter, steep/high charges, IWS where code requires, detach & reset of cabinets/appliances, paint to corners, baseboard with flood cuts, antimicrobial on Cat 2/3, contents manipulation, final cleaning, O&P triggers, quantities that don't match room dimensions). Propose only items missing from the estimate. Ignore pricing, overhead and profit. Put inconsistencies and documentation gaps in "flags".`
+    : `From the field notes${photos.length?" and attached photos":""}, propose Xactimate line items for the damage described. Do not repeat lines already in the estimate. Compute quantities from the room dimensions given. Do not invent damage the notes, checklist or photos don't support; put uncertainty in "questions".`;
+  const prompt = `You are an experienced property insurance estimator who writes water mitigation, fire/smoke, roofing, interior and exterior scopes in Xactimate line-item format.
+TASK: ${task}
+Prefer catalog items and use their exact CAT and SEL codes. You may use other standard Xactimate items when needed.
+${contextBlock()}
+FIELD NOTES:\n${$("#agentNotes").value}
+${photos.length?`ATTACHED PHOTOS, in order:\n${photoKey}\nCite photo numbers in "reason" when a photo supports a line.\n`:""}${JSON_SPEC}`;
+  try{
+    const opts={signal:ctl.signal};
+    if(photos.length) opts.images=photos;
+    const out = await sampleFn.json(prompt,opts);
+    const lines = (Array.isArray(out?.lines)?out.lines:[]).map(p=>{
+      const cat=String(p.cat||"").toUpperCase().trim(), sel=String(p.sel||"").toUpperCase().trim(); const f=findCat(cat,sel);
+      const room = S.rooms.find(r=>r.name.toLowerCase()===String(p.area||"").toLowerCase());
+      let trade = TRADES[p.trade]? p.trade : (f?.t || CAT_TRADE[cat] || "interior");
+      return {trade,area:room?room.id:"",cat,sel,act:ACTS[p.act]?p.act:(f?f.i[5]:"+"),desc:String(p.desc||f?.i[2]||""),qty:r2(n(p.qty)),unit:String(p.unit||f?.i[3]||"EA").toUpperCase(),price:f?f.i[4]:0,reason:String(p.reason||""),on:true};
+    });
+    proposals={lines,flags:(out?.flags||[]).map(String),questions:(out?.questions||[]).map(String)};
+    $("#props").innerHTML=propsHTML(); $("#findings").innerHTML=findingsHTML();
+    st.textContent=`${lines.length} line items proposed. Review, untick any you don't want, then add.`;
+  }catch(e){ st.className="status err"; st.textContent=errCopy(e); }
+  finally{ $("#stopBtn").hidden=true; }
+}
+async function runNarrative(){
+  if(!sampleFn) return; const st=$("#agentStatus"); const ta=$("#narr"); ctl=new AbortController(); $("#stopBtn").hidden=false;
+  st.className="status"; st.textContent="Writing the narrative…"; ta.value="Thinking…";
+  const T=totals();
+  const prompt=`Write a professional scope-of-loss narrative for an insurance carrier, based only on the data below. Plain text, no markdown symbols. Use these headings on their own lines: CAUSE & ORIGIN, MITIGATION PERFORMED, DRYING / CLEANING STANDARD, ROOF FINDINGS, INTERIOR REPAIRS, EXTERIOR REPAIRS, NOTES & EXCLUSIONS. Skip a heading if nothing applies. Reference IICRC S500/S700 only where relevant. Keep it under 450 words. Do not state figures that are not in the data. Do not mention prices or dollar amounts.
+${contextBlock()}
+FIELD NOTES:\n${$("#agentNotes").value}`;
+  try{ const {text}=await sampleFn(prompt,{signal:ctl.signal,onText:({text})=>{ta.value=text;}}); ta.value=text; S.narrative=text; save(); st.textContent="Narrative added to the report."; }
+  catch(e){ ta.value=e.text||S.narrative||""; st.className="status err"; st.textContent=errCopy(e); }
+  finally{ $("#stopBtn").hidden=true; }
+}
+function errCopy(e){
+  const c=e?.code;
+  if(c==="cancelled") return "Stopped.";
+  if(c==="not_granted") return "The AI agent wasn't allowed for this page. Reload and allow it to use the agent.";
+  if(c==="rate_limited") return "Too many requests at once. Wait a minute, then try again.";
+  if(c==="invalid_json") return "The agent's reply couldn't be read as line items. Try again, or shorten the notes.";
+  if(c==="prompt_too_large") return "Too much input. Remove some photos or shorten the notes.";
+  if(c==="image_rejected") return "One of the photos couldn't be used. Try a smaller JPG or PNG.";
+  return "The agent couldn't finish (" + (c||"error") + "). Try again.";
+}
+
+/* ---------- Estimate report ---------- */
+function grouped(){
+  const order=[...S.rooms.map(r=>r.id),""]; const g=[];
+  for(const id of order){ const ls=S.lines.filter(l=>(l.area||"")===id && (id!==""||!roomById(l.area))); if(ls.length) g.push({id,name:areaName(id),room:roomById(id),lines:ls}); }
+  const orphans=S.lines.filter(l=>l.area && !roomById(l.area)); if(orphans.length){ const gen=g.find(x=>x.id===""); if(gen) gen.lines.push(...orphans); }
+  return g;
+}
+function lineParts(l){
+  const c=S.claim, base=lineTotal(l), tax=r2(base*(n(c.matShare)/100)*(n(c.tax)/100)), op=c.op?r2((base+tax)*(n(c.oh)+n(c.pf))/100):0;
+  return {base,tax,op,rcv:r2(base+tax+op)};
+}
+function photoSheet(map){
+  if(!S.photos.length) return "";
+  const g=[...S.rooms.map(r=>r.id),""]; const ordered=g.flatMap(id=>S.photos.filter(p=>(roomById(p.area)?p.area:"")===id));
+  return `<div class="area-h">Photo sheet <small>${S.photos.length} photos</small></div><div class="psheet">${ordered.map(p=>{const src=map?map[p.id]:p.src; return src?`<figure><img src="${esc(src)}" alt="${esc(p.caption||"Claim photo")}"><figcaption><b>#${photoNo(p)}</b> · ${esc(areaName(p.area))} · ${esc(PHOTO_TRADES[p.trade]||"")}${p.taken?" · "+esc(p.taken):""}${p.caption?`<br>${esc(p.caption)}`:""}</figcaption></figure>`:""}).join("")}</div>`;
+}
+function reportInner(map){
+  const c=S.claim; let ln=0;
+  const head = `<div class="rep-title"><h2>${esc(c.insured||"Insured")}</h2><span class="code">Scope of loss · quantities only</span></div>
+  <div class="rep-head">${[["Property",c.address],["Claim #",c.claimNo],["Policy #",c.policyNo],["Carrier",c.carrier],["Date of loss",c.dol],["Inspected",c.insp],["Type of loss",c.cause],["Adjuster",c.adjuster],["Estimator",c.estimator]].filter(x=>x[1]).map(([k,v])=>`<div><span>${k}</span>${esc(v)}</div>`).join("")}</div>`;
+  const narr = S.narrative? `<div class="area-h">Scope narrative</div><div style="white-space:pre-wrap;font-size:13.5px;max-width:80ch">${esc(S.narrative)}</div>`:"";
+  const groups = grouped().map(g=>{
+    const rc=roomCalc(g.room);
+    const rows=g.lines.map(l=>{ ln++;
+      return `<tr><td class="ln">${ln}.</td><td>${esc(ACTS[l.act]&&l.act!=="+"?"":"")}${esc(l.desc)}<div class="code" style="color:var(--muted)">${esc(l.cat)} ${esc(l.sel)} · ${esc(l.act)} ${esc(ACTS[l.act]||"")}</div></td><td class="money">${qfmt(l.qty)} ${esc(l.unit)}</td></tr>`; }).join("");
+    return `<div class="area-h"><span>${esc(g.name)}</span>${rc?`<small>${g.room.L}' × ${g.room.W}' × ${g.room.H}' · ${qfmt(rc.walls)} SF walls · ${qfmt(rc.floor)} SF floor · ${qfmt(rc.perim)} LF perimeter</small>`:""}</div>
+    <div class="tscroll"><table class="rep-table"><thead><tr><th></th><th>Description</th><th class="r">Quantity</th></tr></thead><tbody>${rows}</tbody>
+    <tfoot><tr><td></td><td>${esc(g.name)}: ${g.lines.length} line item${g.lines.length===1?"":"s"}</td><td></td></tr></tfoot></table></div>`;
+  }).join("");
+  const sum = "";
+  const trades = `<div class="area-h">Recap by trade</div><div class="tscroll"><table class="rep-table"><thead><tr><th>Trade</th><th class="r">Line items</th></tr></thead><tbody>${Object.entries(TRADES).map(([k,t])=>{const ls=S.lines.filter(l=>l.trade===k);return ls.length?`<tr><td>${t.name}</td><td class="money">${ls.length}</td></tr>`:""}).join("")}</tbody></table></div>`;
+  return head+narr+(groups||`<div class="empty">No line items yet.</div>`)+equipSheet()+moistureSheet()+trades+sum+photoSheet(map);
+}
+function pageEstimate(){
+  return `${exampleBanner()}<div class="sec-head"><div><span class="eyebrow">Output</span><h2>Scope report</h2><p>Line items and quantities grouped by area, with no pricing. Copy the entry sheet to key the scope into Xactimate, or save the report for the file.</p></div></div>
+  <div class="panel"><div class="row">
+    <button class="btn primary" data-act="copyentry">Copy Xactimate entry sheet</button>
+    <button class="btn" data-act="copycsv">Copy CSV</button>
+    <span class="dlonly" ${dlFn?"":"hidden"}><button class="btn" data-act="savecsv">Save CSV</button> <button class="btn" data-act="savehtml">Save report (.html)</button> <button class="btn" data-act="savejson">Save claim file</button> <button class="btn" data-sprint>Print / Save PDF</button></span>
+    <label class="btn" for="loadJson">Open claim file</label><input id="loadJson" type="file" accept="application/json,.json,text/html,.html" hidden>
+  </div><p class="note">The entry sheet lists each area's CAT, SEL, activity and quantity in Line Entry order. The saved report opens in any browser and prints to PDF.</p></div>
+  <div class="report" style="margin-top:16px">${reportInner()}</div>
+  <div class="panel" style="margin-top:16px"><h3>All line items</h3>${linesTableHTML(S.lines,true)}</div>`;
+}
+function csv(){
+  const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;
+  const rows=[["Area","Trade","CAT","SEL","Activity","Description","Qty","Unit"]];
+  grouped().forEach(g=>g.lines.forEach(l=>{rows.push([g.name,TRADES[l.trade]?.name||l.trade,l.cat,l.sel,l.act,l.desc,l.qty,l.unit])}));
+  return rows.map(r=>r.map(q).join(",")).join("\r\n");
+}
+function entrySheet(){
+  const c=S.claim; let out=`${c.insured} | Claim ${c.claimNo}\n`;
+  grouped().forEach(g=>{ const rc=roomCalc(g.room); out+=`\n${g.name.toUpperCase()}${rc?`  (${g.room.L}x${g.room.W}x${g.room.H})`:""}\n`;
+    g.lines.forEach(l=>{ out+=`  ${(l.cat+" "+l.sel).padEnd(14)} ${l.act.padEnd(2)} ${String(qfmt(l.qty)).padStart(8)} ${l.unit.padEnd(3)}  ${l.desc}\n`; }); });
+  return out;
+}
+async function standaloneReport(){
+  const map={}; for(const p of S.photos) map[p.id]=await srcToData(p.src);
+  const css=`body{font-family:Arial,Helvetica,sans-serif;color:#15212C;max-width:1000px;margin:24px auto;padding:0 16px;font-size:13px}h2{margin:0}table{border-collapse:collapse;width:100%}th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;text-align:left;border-bottom:1px solid #999;padding:6px;background:#f2f4f6}td{padding:5px 6px;border-bottom:1px solid #ddd;vertical-align:top}.r,.money{text-align:right;white-space:nowrap}.code{font-family:Consolas,monospace;font-size:11px;color:#555}.ln{color:#777;width:30px}.rep-head{display:grid;grid-template-columns:1fr 1fr;gap:3px 24px;border-bottom:2px solid #15212C;padding-bottom:12px;margin:10px 0 14px}.rep-head span{color:#666;display:inline-block;min-width:100px}.rep-title{display:flex;justify-content:space-between}.area-h{font-weight:bold;text-transform:uppercase;margin:18px 0 4px;display:flex;justify-content:space-between}.area-h small{font-weight:normal;text-transform:none;color:#666}tfoot td{font-weight:bold;border-top:1px solid #15212C}.summary{margin:20px 0 0 auto;max-width:380px}.summary div{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #ddd}.summary .tot{font-weight:bold;border-bottom:2px solid #15212C}.summary .net{font-weight:bold;font-size:15px;border:0}.empty{color:#777}.psheet{display:grid;grid-template-columns:1fr 1fr;gap:14px}.psheet figure{margin:0;border:1px solid #ccc;break-inside:avoid}.psheet img{width:100%;max-height:320px;object-fit:contain;background:#f2f4f6;display:block}.psheet figcaption{padding:5px 7px;font-size:12px}@media print{body{margin:0}}`;
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Scope ${esc(S.claim.claimNo)}</title><style>${css}</style></head><body>${reportInner(map)}<p class="code" style="margin-top:24px">Generated ${new Date().toLocaleString()} from Field Scope Checklist. Quantities only; price in Xactimate.</p></body></html>`;
+}
+async function copyText(t,label){ try{ await navigator.clipboard.writeText(t); toast(label+" copied"); }catch(e){ const ta=document.createElement("textarea"); ta.value=t; ta.style.cssText="position:fixed;left:0;top:0;width:100%;height:40%;z-index:30"; document.body.appendChild(ta); ta.select(); toast("Press Ctrl/Cmd+C to copy, then click elsewhere"); ta.addEventListener("blur",()=>ta.remove()); } }
+async function saveFile(name,data,mime){
+  if(!dlFn) return; try{ const r=await dlFn.save({filename:name,data:new Blob([data],{type:mime})}); if(r?.status==="saved") toast("Saved "+name); }catch(e){ if(e?.code!=="cancelled") toast("Couldn't save the file"); }
+}
+const fileBase = () => (S.claim.claimNo||"estimate").replace(/[^\w-]+/g,"_");
+
+function pagePhotos(){
+  return `${exampleBanner()}<div class="sec-head"><div><span class="eyebrow">Documentation</span><h2>Claim photos</h2><p>Attach photos to an area and trade, caption them, and they appear numbered on the report's photo sheet. The AI agent can read them when it proposes line items.</p></div></div>${photosHTML("all")}`;
+}
+
+/* ---------- Phone card tables ---------- */
+const CARD_TABLES = "table.cat-table,table.lines-table,table.eq-table,table.rooms,table.prop-table,table.m-table";
+const WIDE_COLS = /^(description|equipment|why|name|location)$/i;
+function labelCells(root){
+  (root||document).querySelectorAll(CARD_TABLES).forEach(t=>{
+    if(t.dataset.carded==="1" && t.tBodies[0]?.dataset.n===String(t.tBodies[0].rows.length)) return;
+    const heads=[...t.querySelectorAll("thead th")].map(th=>th.textContent.trim());
+    t.classList.add("mcard"); t.parentElement?.classList.add("mwrap");
+    [...t.tBodies].forEach(tb=>{ [...tb.rows].forEach(tr=>[...tr.cells].forEach((td,i)=>{
+      const h=heads[i]||""; if(h) td.dataset.label=h; else td.removeAttribute("data-label");
+      td.classList.toggle("wide", WIDE_COLS.test(h));
+      td.classList.toggle("act", !h && i===tr.cells.length-1);
+    })); tb.dataset.n=String(tb.rows.length); });
+    t.dataset.carded="1";
+  });
+}
+new MutationObserver(()=>labelCells()).observe(document.getElementById("main"),{childList:true,subtree:true});
+
+/* ---------- More catalog items ---------- */
+CATALOG.water.push(
+ ["WTR","CEIL","Tear out wet ceiling drywall & bag for disposal","SF",1.65,"-","ceil"],
+ ["WTR","DRLL","Drill holes in wall cavity for drying","LF",1.2,"+","perim"],
+ ["WTR","PEEL","Tear out non-salvageable vinyl / LVP flooring","SF",0.85,"-","floor"],
+ ["WTR","TILE","Tear out tile flooring & bag for disposal","SF",2.1,"-","floor"],
+ ["WTR","TOEK","Detach toe kick for drying - cabinets","LF",4.5,"-"],
+ ["WTR","CLNF","Clean floor - Category 3 water","SF",0.45,"C","floor"],
+ ["WTR","PPE","Personal protective equipment (per day)","EA",30,"+"],
+ ["HMR","ASBT","Asbestos / lead sampling - per sample (lab)","EA",65,"+"]
+);
+CATALOG.fire.push(
+ ["DRY","CHAR","Remove charred drywall & bag for disposal","SF",1.6,"-","walls"],
+ ["CLN","CAB","Clean cabinetry - inside & out - smoke","LF",9.5,"C"],
+ ["CLN","WIN","Clean window, frame & sill - smoke","EA",28,"C"],
+ ["CLN","CONT","Clean contents - per box - smoke","EA",38,"C"],
+ ["CLN","OZN","Ozone generator (per 24 hour period)","EA",95,"+"]
+);
+CATALOG.roof.push(
+ ["RFG","VENT","Roof vent - turtle type","EA",65,"&"],
+ ["RFG","EXH","Exhaust cap - through roof - 6\" to 8\"","EA",85,"&"],
+ ["RFG","SKY","Skylight flashing kit","EA",140,"&"],
+ ["RFG","CHIM","Chimney flashing - average","EA",420,"&"],
+ ["RFG","SAT","Satellite dish - detach & reset","EA",65,"R"]
+);
+CATALOG.interior.push(
+ ["DRY","CLG","1/2\" drywall - ceiling - hung, taped, floated","SF",3.2,"&","ceil"],
+ ["FNC","SHOE","Base shoe / quarter round","LF",1.6,"&","perim"],
+ ["DOR","INT","Interior door - hollow core - pre-hung","EA",285,"&"],
+ ["PNT","DOOR","Paint door slab - 2 coats (per side)","EA",36,"+"],
+ ["FCT","BKSP","Tile backsplash","SF",18,"&"],
+ ["CTR","GRAN","Countertop - granite or quartz","SF",68,"&"],
+ ["PLM","DISH","Dishwasher - detach & reset","EA",145,"R"],
+ ["APP","REF","Refrigerator - remove & reset","EA",55,"R"]
+);
+CATALOG.exterior.push(
+ ["SFG","DS","Downspout - aluminum","LF",9.2,"&"],
+ ["SDG","WRAPC","Wrap window frame & trim with aluminum","EA",210,"&"],
+ ["DEC","STN","Stain & seal deck","SF",1.3,"+"],
+ ["LIT","EXT","Exterior light fixture - detach & reset","EA",58,"R"]
+);
+Object.assign(CAT_TRADE,{HMR:"water",PLM:"interior",APP:"interior",DOR:"interior",DEC:"exterior",LIT:"exterior"});
+const CATALOG_SIZE = () => Object.values(CATALOG).reduce((a,x)=>a+x.length,0);
+let catQ = {};
+function filterCatalog(t){
+  const q=(catQ[t]||"").trim().toLowerCase(), words=q.split(/\s+/).filter(Boolean);
+  let shown=0;
+  document.querySelectorAll(`[data-catrows="${t}"] tr[data-cq]`).forEach(tr=>{
+    const ok = words.length ? words.every(w=>tr.dataset.cq.includes(w)) : tr.dataset.ct===t;
+    tr.hidden=!ok; if(ok) shown++;
+  });
+  const none=document.querySelector(`[data-catnone="${t}"]`); if(none) none.hidden=shown>0;
+}
+
+/* ---------- Suggestions from checklist answers ---------- */
+const DOOR_SF=21, WINDOW_SF=15, DOOR_LF=3;
+const ck = k => S.checks[k]||"";
+const has = (area,cat,sel) => S.lines.some(l=>(l.area||"")===(area||"") && l.cat===cat && l.sel===sel);
+const hasAny = (cat,sel) => S.lines.some(l=>l.cat===cat && l.sel===sel);
+const roomList = () => S.rooms.filter(r=>r.kind==="room");
+const linesIn = (id,pred) => S.lines.some(l=>l.area===id && pred(l));
+function waterRooms(){ const rs=roomList().filter(r=>linesIn(r.id,l=>l.trade==="water")); if(rs.length) return rs; const t=roomById(S.water.target); return t&&t.kind==="room"?[t]:[]; }
+function sug(trade,area,cat,sel,qty,why,act){
+  const f=findCat(cat,sel); if(!f) return null;
+  return {key:`${cat}-${sel}-${area||"g"}`,trade,area:area||"",cat,sel,act:act||f.i[5],desc:f.i[2],qty:qty==null?1:r2(Math.max(0,qty)),unit:f.i[3],price:f.i[4],why,setQty:qty==null};
+}
+const RULES = {
+ water(){ const out=[], rooms=waterRooms(), cat=ck("w_cat"), lvl=cat.split(" -")[0];
+  if(/Cat 2|Cat 3/.test(cat)) rooms.forEach(r=>{ if(!has(r.id,"WTR","GRM")) out.push(sug("water",r.id,"WTR","GRM",roomCalc(r).floor,`${lvl} water: apply antimicrobial to affected surfaces (IICRC S500).`)); });
+  if(/Cat 3/.test(cat)) rooms.forEach(r=>{ const c=roomCalc(r);
+    if(linesIn(r.id,l=>l.cat==="WTR"&&l.sel==="EXT")){
+      if(!has(r.id,"WTR","CARP")) out.push(sug("water",r.id,"WTR","CARP",c.floor,"Category 3: carpet is removed, not dried in place."));
+      if(!has(r.id,"WTR","PADT")) out.push(sug("water",r.id,"WTR","PADT",c.floor,"Category 3: pad is removed and discarded.")); }
+    if(!has(r.id,"WTR","BARR")) out.push(sug("water",r.id,"WTR","BARR",r2(n(r.W)*n(r.H)),"Category 3: contain the work area. Quantity assumes one wall-width barrier; measure it.")); });
+  if(/Cat 2|Cat 3/.test(cat) && !hasAny("WTR","PPE")) out.push(sug("water",rooms[0]?.id,"WTR","PPE",n(S.water.days)||3,`${lvl} water: PPE for each day on site.`));
+  if(ck("w_haz")==="Yes" && !hasAny("HMR","ASBT")) out.push(sug("water",rooms[0]?.id,"HMR","ASBT",null,"Pre-1980 building: test before any demolition. Set the sample count."));
+  if(ck("w_mold")==="Yes"){
+    if(!hasAny("WTR","BARR")) out.push(sug("water",rooms[0]?.id,"WTR","BARR",null,"Visible growth: set up containment. Measure the barrier."));
+    if(!hasAny("CLN","HEPA")) out.push(sug("water",rooms[0]?.id,"CLN","HEPA",rooms[0]?roomCalc(rooms[0]).floor:null,"Visible growth: HEPA vacuum the affected area.","C")); }
+  if(S.equip.length && !hasAny("WTR","EQ")) out.push(sug("water",S.equip[0].area,"WTR","EQ",3,"Equipment is logged, but setup, take-down and monitoring time isn't."));
+  if((ck("w_map")==="Yes"||moist().length) && !hasAny("WTR","MTR")) out.push(sug("water",rooms[0]?.id,"WTR","MTR",2,"Moisture mapping was done; bill the time."));
+  rooms.forEach(r=>{ if(has(r.id,"WTR","FCUT") && !has(r.id,"WTR","BASE")) out.push(sug("water",r.id,"WTR","BASE",roomCalc(r).perim,"The flood cut is scoped; baseboard has to come off first.")); });
+  return out; },
+ fire(){ const out=[], rooms=roomList(), sm=ck("f_smoke"), od=ck("f_odor"), fireRooms=rooms.filter(r=>linesIn(r.id,l=>l.trade==="fire"));
+  if(ck("f_board")==="Yes" && !hasAny("TMP","BU")) out.push(sug("fire","","TMP","BU",32,"Board-up needed. Quantity assumes one 4×8 sheet; adjust."));
+  if(ck("f_hvac")==="Yes" && !hasAny("HVC","DUCT")) out.push(sug("fire","","HVC","DUCT",null,"The HVAC ran during or after the fire: clean the ducts. Set the register count.","C"));
+  if(ck("f_pack")==="Yes" && !hasAny("CPS","PACK")) out.push(sug("fire","","CPS","PACK",8,"Contents pack-out required. Adjust the hours."));
+  if(ck("f_test")==="Yes" || /Moderate|Heavy/.test(od)) (fireRooms.length?fireRooms:rooms.slice(0,1)).forEach(r=>{ if(/Moderate|Heavy/.test(od) && !has(r.id,"CLN","FOG")) out.push(sug("fire",r.id,"CLN","FOG",roomCalc(r).floor,`${od} odor: thermal fog to deodorize.`)); });
+  if(od==="Heavy" && !hasAny("CLN","HYD")) out.push(sug("fire",(fireRooms[0]||rooms[0])?.id,"CLN","HYD",3,"Heavy odor: run a hydroxyl generator. Adjust the days."));
+  if(/Wet|Protein|Fuel/.test(sm)) fireRooms.forEach(r=>{ if(!has(r.id,"CLN","WALL")) out.push(sug("fire",r.id,"CLN","WALL",roomCalc(r).walls,`${sm.split(" /")[0]} residue: heavy wash rather than dry sponge.`,"C")); });
+  if(od==="Heavy") fireRooms.forEach(r=>{ if(!has(r.id,"PNT","SEAL")) out.push(sug("fire",r.id,"PNT","SEAL",roomCalc(r).walls,"Heavy odor: seal walls with odor-blocking primer before paint.")); });
+  return out; },
+ roof(){ const out=[], R=S.roof, area=R.area||S.rooms.find(r=>r.kind==="roof")?.id, built=S.lines.some(l=>l.trade==="roof"&&l.cat==="RFG");
+  if(!built && (ck("r_wind")==="Yes"||n(ck("r_hail"))>=1)) out.push({key:"tip-roofcalc",tip:true,trade:"roof",why:"Storm damage is documented but there are no roof lines yet. Enter the measurements and tap Build roof lines."});
+  if(built && ck("r_ice")==="Yes" && !hasAny("RFG","IWS")) out.push(sug("roof",area,"RFG","IWS",n(R.eaves)*3+n(R.valley)*3,"Local code requires ice & water barrier."));
+  if(built && n(R.pitch)>=7 && !hasAny("RFG","STEEP")) out.push(sug("roof",area,"RFG","STEEP",n(R.sq),"Pitch is 7/12 or steeper."));
+  if(built && n(R.stories)>=2 && !hasAny("RFG","HIGH")) out.push(sug("roof",area,"RFG","HIGH",n(R.sq),"The roof is two or more stories up."));
+  if(ck("r_coll")==="Yes" && !hasAny("HVC","FINS")) out.push(sug("exterior",S.rooms.find(r=>r.kind==="elev")?.id,"HVC","FINS",1,"Collateral damage noted: check the A/C condenser fins."));
+  if(ck("r_leak")==="Yes"){ const r=roomList()[0]; if(r && !hasAny("PNT","CLG")) out.push(sug("interior",r.id,"PNT","CLG",roomCalc(r).ceil,"A roof leak reached the interior: seal and paint the stained ceiling. Change the room if needed.")); }
+  return out; },
+ interior(){ const out=[];
+  roomList().forEach(r=>{ const c=roomCalc(r);
+   if(has(r.id,"WTR","FCUT")){
+     if(!has(r.id,"DRY","1/2")) out.push(sug("interior",r.id,"DRY","1/2",r2(c.perim*2),"Flood cut at 2 ft: replace the drywall (perimeter × 2 ft)."));
+     if(!has(r.id,"FNC","BS3")) out.push(sug("interior",r.id,"FNC","BS3",c.perim,"Baseboard came off for the flood cut; replace it."));
+     if(!has(r.id,"PNT","BASE")) out.push(sug("interior",r.id,"PNT","BASE",c.perim,"New baseboard needs paint.")); }
+   if(has(r.id,"DRY","1/2")){
+     if(ck("i_tex")==="Yes" && !has(r.id,"DRY","TXT")) out.push(sug("interior",r.id,"DRY","TXT",c.walls,"Walls are textured: match the texture on the new drywall."));
+     if(ck("i_paint")==="Yes" && !has(r.id,"PNT","SP")) out.push(sug("interior",r.id,"PNT","SP",c.walls,"Paint to the corners so the color matches.")); }
+   if(has(r.id,"WTR","CARP") && !has(r.id,"FCC","AV")) out.push(sug("interior",r.id,"FCC","AV",c.floor,"Carpet was torn out; replace it."));
+   if(has(r.id,"WTR","PADT") && !has(r.id,"FCC","PAD")) out.push(sug("interior",r.id,"FCC","PAD",c.floor,"Pad was torn out; replace it."));
+   const cab=S.lines.find(l=>l.area===r.id&&l.cat==="CAB"&&l.sel==="LOW");
+   if(cab && !linesIn(r.id,l=>l.cat==="CTR")) out.push(sug("interior",r.id,"CTR","LAM",n(cab.qty),"Base cabinets are replaced, so the countertop comes off too. Switch to the matching top."));
+   if(cab && !has(r.id,"PLM","DISH")) out.push(sug("interior",r.id,"PLM","DISH",1,"Base cabinets are replaced: the dishwasher is detached and reset."));
+   if(ck("i_cont")==="Yes" && linesIn(r.id,l=>l.trade!=="exterior"&&l.trade!=="roof") && !has(r.id,"CON","MOVE")) out.push(sug("interior",r.id,"CON","MOVE",1,"Contents have to move for the work in this room."));
+   if(linesIn(r.id,l=>l.trade==="interior"&&l.cat!=="CLN") && !has(r.id,"CLN","FINAL")) out.push(sug("interior",r.id,"CLN","FINAL",c.floor,"Construction cleanup after the repairs.","C"));
+  });
+  if(ck("i_ins")==="Yes" && !hasAny("INS","R13")) out.push(sug("interior",roomList()[0]?.id,"INS","R13",null,"Insulation behind the walls is affected. Set the area."));
+  return out; },
+ exterior(){ const out=[], el=S.rooms.find(r=>r.kind==="elev")?.id;
+  [["e_gut","SFG","GUTA","Gutters or downspouts are damaged. Measure the run."],["e_fas","SFG","FASC","Fascia is damaged. Measure the run."],
+   ["e_win","WDW","SCRN","Window screens are damaged. Count them."],["e_door","DOR","EXT","An exterior door is damaged.",1],
+   ["e_ac","HVC","FINS","A/C condenser fins are damaged.",1],["e_fence","FEN","WOOD","Fence damage noted. Measure it."],["e_paint","PNT","EXT","Exterior paint damage. Measure the area."]]
+   .forEach(([k,c,s,why,q])=>{ if(ck(k)==="Yes" && !hasAny(c,s)) out.push(sug("exterior",el,c,s,q??null,why)); });
+  return out; }
+};
+let SUGG = {};
+function suggestions(t){
+  S.dismissed=S.dismissed||{}; let list=[];
+  try{ list=(RULES[t]?.()||[]).filter(Boolean); }catch(e){ list=[]; }
+  const seen=new Set(); return list.filter(x=>{ if(S.dismissed[x.key]||seen.has(x.key)) return false; seen.add(x.key); return true; });
+}
+function suggestHTML(t){
+  const list=suggestions(t); SUGG[t]=list; if(!list.length) return "";
+  const lines=list.filter(x=>!x.tip);
+  return `<div class="panel sugg" style="--tc:var(${TRADES[t].color})"><div class="row" style="justify-content:space-between;margin-bottom:6px"><div style="min-width:0"><h3 style="margin:0">Suggested from your answers <span class="sugg-n">${list.length}</span></h3><p class="note" style="margin:2px 0 0">Items your checklist, rooms and lines point to that aren't in the scope yet. Check every quantity.</p></div>${lines.length>1?`<button class="btn small primary" data-sugall="${t}">Add all ${lines.length}</button>`:""}</div>
+  <div class="sugg-list">${list.map((x,i)=>x.tip
+   ? `<div class="sugg-row"><div class="sugg-main"><b>Next step</b><span class="sugg-why">${esc(x.why)}</span></div><div class="row" style="flex-wrap:nowrap"><button class="btn ghost small" data-sugno="${t}:${i}">Dismiss</button></div></div>`
+   : `<div class="sugg-row"><div class="sugg-main"><span><span class="code"><b>${esc(x.cat)}</b> ${esc(x.sel)} · ${esc(x.act)}</span> <b>${esc(x.desc)}</b></span><span class="sugg-meta">${esc(areaName(x.area))} · ${x.setQty?'<span class="setq">set quantity after adding</span>':esc(qfmt(x.qty)+" "+x.unit)}${x.trade!==t?` · adds to ${esc(TRADES[x.trade].short)}`:""}</span><span class="sugg-why">${esc(x.why)}</span></div><div class="row" style="flex-wrap:nowrap"><button class="btn ghost small" data-sugno="${t}:${i}">Dismiss</button><button class="btn small" data-sugadd="${t}:${i}">Add</button></div></div>`).join("")}</div></div>`;
+}
+function addSugg(x){ S.lines.push({id:uid(),trade:x.trade,area:x.area,cat:x.cat,sel:x.sel,act:x.act,desc:x.desc,qty:x.qty,unit:x.unit,price:x.price,note:"Suggested"}); }
+
+/* ---------- Moisture readings ---------- */
+const MATERIALS = ["Drywall","Wood framing","Subfloor","Hardwood","Concrete","Carpet / pad","Cabinet","Plaster","Other"];
+const moist = () => (S.moisture || (S.moisture = []));
+let moistArea = "";
+const today = () => { const d=new Date(); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; };
+function mStatus(m){ if(String(m.reading??"").trim()===""||String(m.goal??"").trim()==="") return ""; return n(m.reading)<=n(m.goal)?"dry":"wet"; }
+const pointKey = m => `${m.area}|${(m.point||"").trim().toLowerCase()}|${m.material}`;
+function moistSummary(){
+  const pts={}; moist().forEach(m=>{ const k=pointKey(m); if(!pts[k]||m.date>=pts[k].date) pts[k]=m; });
+  const latest=Object.values(pts); const dates=[...new Set(moist().map(m=>m.date).filter(Boolean))].sort();
+  const done=latest.filter(m=>mStatus(m)==="dry").length, read=latest.filter(m=>mStatus(m)).length;
+  return {points:latest.length, dry:done, read, days:dates.length, last:dates[dates.length-1]||"", allDry: latest.length>0 && done===latest.length};
+}
+function moistCards(s){ return `<div><span>Points tracked</span><b>${s.points}</b></div><div><span>At drying goal</span><b>${s.dry} of ${s.points}</b></div><div><span>Days logged</span><b>${s.days}</b></div><div><span>Status</span><b class="${s.allDry?"m-dry":"m-wet"}">${s.points?(s.allDry?"Goal met":"Still drying"):"—"}</b></div>`; }
+function pageMoisture(){
+  const list=[...moist()].sort((a,b)=>(a.date||"").localeCompare(b.date||"")||areaName(a.area).localeCompare(areaName(b.area))||(a.point||"").localeCompare(b.point||""));
+  if(!moistArea || !roomById(moistArea)) moistArea = waterRooms()[0]?.id || roomList()[0]?.id || "";
+  const rows=list.map(m=>{ const st=mStatus(m); return `<tr>
+    <td><input type="date" data-m="${m.id}" data-f="date" value="${esc(m.date)}" aria-label="Date"></td>
+    <td><select class="w-area" data-m="${m.id}" data-f="area" aria-label="Area">${areaOptions(m.area,r=>r.kind==="room")}</select></td>
+    <td><input data-m="${m.id}" data-f="point" value="${esc(m.point)}" placeholder="e.g. N wall, 6 in up" aria-label="Location" style="min-width:150px"></td>
+    <td><select data-m="${m.id}" data-f="material" aria-label="Material">${MATERIALS.map(x=>`<option ${x===m.material?"selected":""}>${x}</option>`).join("")}</select></td>
+    <td><input class="num" style="width:72px" inputmode="decimal" data-m="${m.id}" data-f="reading" value="${esc(m.reading)}" aria-label="Reading"></td>
+    <td><input class="num" style="width:72px" inputmode="decimal" data-m="${m.id}" data-f="goal" value="${esc(m.goal)}" aria-label="Dry goal"></td>
+    <td data-mst="${m.id}">${st==="dry"?'<span class="m-dry">Dry</span>':st==="wet"?'<span class="m-wet">Wet</span>':'<span class="status">—</span>'}</td>
+    <td><button class="btn ghost small" data-mact="del" data-id="${m.id}" aria-label="Remove reading">✕</button></td></tr>`; }).join("");
+  return `${exampleBanner()}<div class="sec-head" style="--tc:var(--t-water)"><div><span class="eyebrow"><span class="dot"></span> Drying documentation</span><h2>Moisture readings</h2><p>Log each monitoring point every day with its reading and the dry goal you took from unaffected material. A point is dry once its reading is at or below the goal; the log prints with the report.</p></div></div>
+  <div class="calc-out" id="mTot" style="margin-top:0">${moistCards(moistSummary())}</div>
+  <div class="panel"><div class="row" style="justify-content:space-between;margin-bottom:10px"><h3 style="margin:0">Readings</h3>
+    <div class="row"><label class="flabel" for="mArea">New point in</label><select id="mArea" data-marea style="width:auto">${areaOptions(moistArea,r=>r.kind==="room")}</select>
+    <button class="btn small" data-mact="add">+ Reading</button>${list.length?`<button class="btn small primary" data-mact="nextday">Start next day's readings</button>`:""}</div></div>
+  ${list.length?`<div class="tscroll"><table class="m-table"><thead><tr><th>Date</th><th>Area</th><th>Location</th><th>Material</th><th class="r">Reading</th><th class="r">Dry goal</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
+   :`<div class="tscroll"><div class="empty">No readings yet. Pick a room and tap + Reading for each monitoring point.</div></div>`}
+  <p class="note">"Start next day's readings" copies every point from the most recent day with a blank reading. Use the same meter and scale for a point every day.</p></div>`;
+}
+function moistureSheet(){
+  if(!moist().length) return "";
+  const dates=[...new Set(moist().map(m=>m.date).filter(Boolean))].sort().slice(-7);
+  const pts={}; moist().forEach(m=>{ const k=pointKey(m); (pts[k] ||= {m,by:{}}).by[m.date]=m; if(m.goal!=="") pts[k].m=m; });
+  const fd=d=>{ const [y,mo,da]=d.split("-"); return `${+mo}/${+da}`; };
+  const s=moistSummary();
+  return `<div class="area-h">Moisture log <small>${s.points} points · ${s.dry} at goal · ${s.allDry?"drying goal met":"still drying"}</small></div><div class="tscroll"><table class="rep-table"><thead><tr><th>Point</th><th class="r">Goal</th>${dates.map(d=>`<th class="r">${fd(d)}</th>`).join("")}</tr></thead><tbody>
+  ${Object.values(pts).map(({m,by})=>`<tr><td>${esc(areaName(m.area))} · ${esc(m.point||"")}<div class="code">${esc(m.material)}</div></td><td class="money">${esc(m.goal)}</td>${dates.map(d=>{ const x=by[d]; const st=x?mStatus(x):""; return `<td class="money" style="${st==="wet"?"font-weight:600":""}">${x&&String(x.reading).trim()!==""?esc(x.reading):"—"}</td>`; }).join("")}</tr>`).join("")}
+  </tbody></table></div>`;
+}
+function updateMoistRow(m){
+  const st=mStatus(m), c=document.querySelector(`[data-mst="${m.id}"]`);
+  if(c) c.innerHTML = st==="dry"?'<span class="m-dry">Dry</span>':st==="wet"?'<span class="m-wet">Wet</span>':'<span class="status">—</span>';
+  const t=document.getElementById("mTot"); if(t) t.innerHTML=moistCards(moistSummary());
+}
+
+/* ---------- Events for suggestions, catalog search and moisture ---------- */
+document.addEventListener("click",e=>{
+  const b=e.target.closest("[data-sugadd],[data-sugno],[data-sugall],[data-mact]"); if(!b) return;
+  const y=window.scrollY, d=b.dataset;
+  if(d.sugadd){ const [t,i]=d.sugadd.split(":"); const x=SUGG[t]?.[+i]; if(x){ addSugg(x); toast(`${x.cat} ${x.sel} added to ${areaName(x.area)}`); } }
+  else if(d.sugno){ const [t,i]=d.sugno.split(":"); const x=SUGG[t]?.[+i]; if(x){ S.dismissed=S.dismissed||{}; S.dismissed[x.key]=1; } }
+  else if(d.sugall){ const xs=(SUGG[d.sugall]||[]).filter(x=>!x.tip); xs.forEach(addSugg); toast(`${xs.length} lines added`); }
+  else if(d.mact==="add"){ moist().push({id:uid(),date:today(),area:moistArea,point:"",material:"Drywall",reading:"",goal:""}); }
+  else if(d.mact==="del"){ S.moisture=moist().filter(m=>m.id!==d.id); }
+  else if(d.mact==="nextday"){ const dates=[...new Set(moist().map(m=>m.date).filter(Boolean))].sort(); const last=dates[dates.length-1];
+    let next=today(); if(last && next<=last){ const t=new Date(last+"T12:00:00"); t.setDate(t.getDate()+1); next=`${t.getFullYear()}-${pad2(t.getMonth()+1)}-${pad2(t.getDate())}`; }
+    const pts={}; moist().filter(m=>m.date===last).forEach(m=>{ pts[pointKey(m)]=m; });
+    Object.values(pts).forEach(m=>moist().push({id:uid(),date:next,area:m.area,point:m.point,material:m.material,reading:"",goal:m.goal}));
+    toast(`${Object.keys(pts).length} points ready for ${next}`); }
+  touch(); render(); window.scrollTo({top:y});
+});
+document.addEventListener("input",e=>{
+  const el=e.target, d=el.dataset;
+  if(d.catq){ catQ[d.catq]=el.value; filterCatalog(d.catq); return; }
+  if(d.marea!==undefined){ moistArea=el.value; return; }
+  if(d.m){ const m=moist().find(x=>x.id===d.m); if(!m) return; m[d.f]=el.value; touch(); updateMoistRow(m); if(d.f==="area"||d.f==="date") { const y=window.scrollY; render(); window.scrollTo({top:y}); } return; }
+});
+
+
+/* ---------- Your own checklist questions ---------- */
+const MYQ_KEY = "scopeChecklist.myQuestions";
+function myTemplate(){ try{ return JSON.parse(localStorage.getItem(MYQ_KEY)||"{}")||{}; }catch(e){ return {}; } }
+function setMyTemplate(tpl){ try{ localStorage.setItem(MYQ_KEY, JSON.stringify(tpl)); }catch(e){} }
+function customChecks(t){
+  if(!S.custom){ const tpl=myTemplate(); S.custom={}; for(const k in tpl) S.custom[k]=(tpl[k]||[]).map(q=>({...q})); }
+  return (S.custom[t]||[]).map(q=>[q.id, q.label, q.type==="text"?"text":YN, null, true]);
+}
+document.addEventListener("click",e=>{
+  const b=e.target.closest("[data-addq],[data-delq]"); if(!b) return;
+  const y=window.scrollY;
+  if(b.dataset.addq){ const t=b.dataset.addq, inp=$("#nq_"+t), label=(inp?.value||"").trim();
+    if(!label){ inp?.focus(); toast("Type the question first"); return; }
+    customChecks(t); const q={id:"c_"+uid(), label:label.slice(0,200), type:$("#nqt_"+t)?.value==="text"?"text":"yn"};
+    (S.custom[t] ||= []).push(q);
+    if($("#nqk_"+t)?.checked){ const tpl=myTemplate(); (tpl[t] ||= []).push(q); setMyTemplate(tpl); }
+    touch(); render(); window.scrollTo({top:y}); toast("Question added"); $("#nq_"+t)?.focus(); return; }
+  if(b.dataset.delq){ const [t,k]=b.dataset.delq.split(":"); S.custom[t]=(S.custom[t]||[]).filter(q=>q.id!==k); delete S.checks[k];
+    const tpl=myTemplate(); if(tpl[t]){ tpl[t]=tpl[t].filter(q=>q.id!==k); setMyTemplate(tpl); }
+    touch(); render(); window.scrollTo({top:y}); toast("Question removed"); }
+});
+document.addEventListener("keydown",e=>{ if(e.key==="Enter" && e.target.id?.startsWith("nq_")){ e.preventDefault(); document.querySelector(`[data-addq="${e.target.id.slice(3)}"]`)?.click(); } });
+
+/* ---------- Download for offline use (inside Claude only) ---------- */
+const OFFLINE_FILE = "checklist-offline.html";
+function offlineBanner(){
+  if(!window.claude?.use) return "";
+  return `<div class="offline"><p><b>Use it on your computer without Claude.</b> Download a copy that opens by double-clicking, works offline, and saves claims as files you keep. Save your claim file below first, then open it in the copy.</p><button type="button" class="btn" data-offline>Download offline version</button></div>`;
+}
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("[data-offline]"); if(!b) return;
+  if(!dlFn){ toast("Downloads aren't available here. Open this page in the Claude app or claude.ai."); return; }
+  b.disabled=true; const label=b.textContent; b.textContent="Preparing…";
+  try{ const r=await fetch(OFFLINE_FILE); if(!r.ok) throw 0; const html=await r.text();
+    const title=(document.querySelector(".brand")?.textContent||"Scope Checklist").trim();
+    const res=await dlFn.save({filename:`${title}.html`, data:new Blob([html],{type:"text/html"})}); if(res?.status==="saved") toast("Saved "+title+".html"); }
+  catch(err){ if(err?.code!=="cancelled") toast("Couldn't prepare the download. Try again."); }
+  b.disabled=false; b.textContent=label;
+});
+
+
+/* ---------- Claim files: one file anyone can open ---------- */
+const CLAIM_TEMPLATE = "claim-template.html";
+function parseClaimText(t){
+  t = String(t || "").trim();
+  if(t.startsWith("{")) return JSON.parse(t);
+  const m = t.match(/<script type="application\/json" id="claim-data">([\s\S]*?)<\/script>/);
+  if(!m) throw new Error("not a claim file");
+  return JSON.parse(m[1]);
+}
+async function smallPhotoData(src){
+  try{ const img = new Image(); img.src = src; await img.decode(); const k = Math.min(1, 720 / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement("canvas"); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); return c.toDataURL("image/jpeg", 0.68); }catch(e){ return ""; }
+}
+async function claimStaticView(photos){
+  const map = {}; for(const p of photos) map[p.id] = await smallPhotoData(p.src);
+  return `<div class="viewnote"><b>Viewing only.</b>To edit this claim, open this file on a computer in Chrome, Edge, Safari or Firefox, or open it in the Field Scope Checklist app with Open claim file.</div><div class="report">${reportInner(map)}</div>`;
+}
+async function exportClaimFile(){
+  const c = JSON.parse(JSON.stringify(S));
+  for(const p of c.photos || []){ const d = await srcToData(p.src); if(d){ p.src = d; p.assetId = null; } }
+  c.__savedAt = Date.now();
+  let tpl = null;
+  try{ const r = await fetch(CLAIM_TEMPLATE, { cache: "no-cache" }); if(r.ok) tpl = await r.text(); }catch(e){}
+  if(!tpl || !tpl.includes('id="claim-data"')){ saveFile(fileBase() + "_claim.json", JSON.stringify(c), "application/json"); return; }
+  toast("Preparing the claim file…");
+  const json = JSON.stringify(c).replace(/</g, "\\u003c");
+  const view = await claimStaticView(c.photos || []);
+  const title = ("Claim " + (c.claim.claimNo || "") + (c.claim.address ? " · " + String(c.claim.address).split(",")[0] : "")).trim();
+  const html = tpl.replace(/<title>[\s\S]*?<\/title>/, () => "<title>" + esc(title) + "</title>")
+    .replace(/(<script type="application\/json" id="claim-data">)[\s\S]*?(<\/script>)/, (m, a, b) => a + json + b)
+    .replace(/(<div id="staticView">)[\s\S]*?(<\/div><!--\/staticView-->)/, (m, a, b) => a + view + b);
+  const name = ("Claim " + (c.claim.claimNo || fileBase()) + ".html").replace(/[\\/:*?"<>|]+/g, "_");
+  saveFile(name, html, "text/html");
+}
+
+/* ---------- Render dispatcher ---------- */
+function render(){
+  const P={claim:pageClaim,water:pageWater,fire:pageFire,roof:pageRoof,interior:pageInterior,exterior:pageExterior,agent:pageAgent,estimate:pageEstimate,photos:pagePhotos,equip:pageEquip}; P.moisture=pageMoisture;
+  $("#main").innerHTML=P[cur](); refreshTotals();
+
+}
+function drawThumbs(){ const t=$("#thumbs"); if(!t) return; t.innerHTML=""; photos.forEach(b=>{const i=document.createElement("img"); i.src=URL.createObjectURL(b); i.alt="Damage photo"; t.appendChild(i);}); }
+function touch(){ if(S.example){ /* keep banner until user starts new */ } save(); }
+
+/* ---------- Events ---------- */
+document.addEventListener("click",e=>{
+  const b=e.target.closest("button,[data-tab]"); if(!b) return;
+  if(b.dataset.tab){ go(b.dataset.tab); return; }
+  if(b.dataset.ck){ const k=b.dataset.ck; S.checks[k] = S.checks[k]===b.dataset.v ? "" : b.dataset.v; touch(); const y=window.scrollY; render(); window.scrollTo({top:y}); return; }
+  if(b.dataset.addcat){ const [t,idx]=b.dataset.addcat.split(":"); const i=CATALOG[t][idx]; const fr=b.dataset.from||t, outside=x=>x==="roof"||x==="exterior"; const area=outside(t)!==outside(fr)?addArea[t]:addArea[fr];
+    const qIn=$(`#cq_${t}_${idx}`), act=$(`#ca_${t}_${idx}`).value; let q=n(qIn.value);
+    if(!q){ const rc=roomCalc(roomById(area)); q = rc&&i[6]? rc[i[6]] : 1; }
+    S.lines.push({id:uid(),trade:t,area,cat:i[0],sel:i[1],act,desc:i[2],qty:r2(q),unit:i[3],price:i[4],note:""}); touch();
+    const y=window.scrollY; render(); window.scrollTo({top:y}); toast(`${i[0]} ${i[1]} added to ${areaName(area)}`); return; }
+  if(b.dataset.delphoto){ const p=S.photos.find(x=>x.id===b.dataset.delphoto); S.photos=S.photos.filter(x=>x!==p);
+    if(p?.assetId && assetsFn && !S.photos.some(x=>x.assetId===p.assetId)) assetsFn.delete(p.assetId).catch(()=>{});
+    savePhotosNow(); const y=window.scrollY; render(); window.scrollTo({top:y}); toast("Photo removed"); return; }
+  if(b.dataset.del){ S.lines=S.lines.filter(l=>l.id!==b.dataset.del); touch(); const y=window.scrollY; render(); window.scrollTo({top:y}); return; }
+  if(b.dataset.custom){ const t=b.dataset.custom; S.lines.push({id:uid(),trade:t,area:addArea[t]||"",cat:"",sel:"",act:"+",desc:"",qty:1,unit:"EA",price:0,note:""}); touch(); const y=window.scrollY; render(); window.scrollTo({top:y}); return; }
+  if(b.dataset.addroom){ const k=b.dataset.addroom; S.rooms.push({id:uid(),name:k==="room"?"New Room":k==="roof"?"Roof Area":"Elevation",kind:k,L:10,W:10,H:8}); touch(); render(); return; }
+  if(b.dataset.delroom){ S.rooms=S.rooms.filter(r=>r.id!==b.dataset.delroom); touch(); render(); return; }
+  const a=b.dataset.act; if(!a) return;
+  if(a==="newclaim"){ $("#newWrap").innerHTML=`<span class="confirm">Clear the example and every entry? <button class="btn small primary" data-act="newyes">Clear</button><button class="btn small" data-act="newno">Cancel</button></span>`; return; }
+  if(a==="newno"){ render(); return; }
+  if(a==="newyes"){ S={example:false,claim:{insured:"",address:"",phone:"",claimNo:"",policyNo:"",carrier:"",adjuster:"",estimator:"",dol:"",insp:"",cause:"",priceList:"",tax:6,matShare:45,op:true,oh:10,pf:10,deductible:0},
+      rooms:[{id:uid(),name:"Room 1",kind:"room",L:12,W:12,H:8},{id:uid(),name:"Roof",kind:"roof"},{id:uid(),name:"Front Elevation",kind:"elev"}],checks:{},water:{area:0,cls:"2",rooms:1,days:3,dehuPints:110},roof:{sq:0,waste:10,ridge:0,hip:0,valley:0,eaves:0,rakes:0,pitch:6,stories:1,layers:1,pipes:0,step:0,vent:0},lines:[],photos:[],equip:[],notes:"",narrative:""};
+    addArea={water:S.rooms[0].id,fire:S.rooms[0].id,roof:S.rooms[1].id,interior:S.rooms[0].id,exterior:S.rooms[2].id}; S.water.target=S.rooms[0].id; S.roof.area=S.rooms[1].id; proposals=null; save(); go("claim"); toast("New claim started"); return; }
+  if(a==="watercalc"){ const c=waterCalc(S.water), area=S.water.target||addArea.water;
+    addEquip("am",area,{units:c.am,days:c.days}); addEquip("dhl",area,{units:c.dehu,days:c.days});
+    syncEquip(); touch(); render(); toast("Air movers and dehumidifiers added to the equipment log"); return; }
+  if(a==="addequip"){ addEquip(b.dataset.type, equipArea); syncEquip(); touch(); const y=window.scrollY; render(); window.scrollTo({top:y}); return; }
+  if(a==="delequip"){ S.equip=S.equip.filter(x=>x.id!==b.dataset.id); syncEquip(); touch(); const y=window.scrollY; render(); window.scrollTo({top:y}); return; }
+  if(a==="removenow"){ const q=S.equip.find(x=>x.id===b.dataset.id); if(q){ q.removed=nowLocal(); syncEquip(); touch(); const y=window.scrollY; render(); window.scrollTo({top:y}); } return; }
+  if(a==="pullall"){ const t=nowLocal(); S.equip.forEach(q=>{ if(!q.removed) q.removed=t; }); syncEquip(); touch(); render(); toast("All equipment marked removed"); return; }
+  if(a==="roofcalc"){ S.lines=S.lines.filter(l=>l.note!=="Roof calc"); S.lines.push(...roofLines(S.roof,S.roof.area||addArea.roof)); touch(); render(); toast("Roof lines built"); return; }
+  if(a==="analyze") return runAgent("analyze");
+  if(a==="review") return runAgent("review");
+  if(a==="narrative") return runNarrative();
+  if(a==="stop"){ ctl?.abort(); return; }
+  if(a==="copynarr") return copyText($("#narr").value,"Narrative");
+  if(a==="propall"){ proposals.lines.forEach(p=>p.on=true); $("#props").innerHTML=propsHTML(); return; }
+  if(a==="propadd"){ const add=proposals.lines.filter(p=>p.on); add.forEach(p=>S.lines.push({id:uid(),trade:p.trade,area:p.area,cat:p.cat,sel:p.sel,act:p.act,desc:p.desc,qty:p.qty,unit:p.unit,price:p.price,note:"AI agent"}));
+    proposals.lines=proposals.lines.filter(p=>!p.on); touch(); $("#props").innerHTML=propsHTML(); refreshTotals(); toast(`${add.length} lines added to scope`); return; }
+  if(a==="copycsv") return copyText(csv(),"CSV");
+  if(a==="copyentry") return copyText(entrySheet(),"Entry sheet");
+  if(a==="savecsv") return saveFile(fileBase()+"_lines.csv",csv(),"text/csv");
+  if(a==="savehtml"){ toast("Preparing report…"); standaloneReport().then(h=>saveFile(fileBase()+"_scope.html",h,"text/html")); return; }
+  if(a==="savejson"){ exportClaimFile(); return; }
+});
+document.addEventListener("input",e=>{
+  const el=e.target, d=el.dataset;
+  if(d.c!==undefined){ S.claim[d.c]= d.c==="op" ? el.value==="1" : el.value; touch(); refreshTotals(); return; }
+  if(d.ckin){ S.checks[d.ckin]=el.value; touch(); return; }
+  if(d.l){ const l=S.lines.find(x=>x.id===d.l); if(!l) return; l[d.f]= (d.f==="qty"||d.f==="price")? el.value : el.value; if(d.f==="cat"||d.f==="sel"||d.f==="unit") l[d.f]=el.value.toUpperCase(); touch(); refreshTotals(); return; }
+  if(d.r){ const r=roomById(d.r); if(!r) return; r[d.f]=el.value; touch(); const rc=roomCalc(r); if(rc) ["walls","floor","perim"].forEach(k=>{const c=document.querySelector(`[data-rc="${r.id}:${k}"]`); if(c) c.textContent=qfmt(rc[k]);}); if(d.f==="kind") render(); return; }
+  if(d.eq){ const q=S.equip.find(x=>x.id===d.eq); if(!q) return; q[d.f]=el.value; if(d.f==="type"){ const t=EQUIP[el.value]; Object.assign(q,{name:t.name,rate:t.rate,cat:t.cat,sel:t.sel,trade:t.trade}); }
+    syncEquip(); touch(); if(d.f==="type"||d.f==="area"){ const y=window.scrollY; render(); window.scrollTo({top:y}); } else updateEquipRow(q); refreshTotals(); return; }
+  if(d.equiparea!==undefined){ equipArea=el.value; return; }
+  if(d.w){ S.water[d.w]=el.value; touch(); const o=$("#wout"); if(o) o.innerHTML=waterOut(waterCalc(S.water)); return; }
+  if(d.rf){ S.roof[d.rf]=el.value; touch(); return; }
+  if(d.addarea){ addArea[d.addarea]=el.value; render(); return; }
+  if(el.id==="agentNotes"){ S.notes=el.value; touch(); return; }
+  if(el.id==="narr"){ S.narrative=el.value; touch(); return; }
+  if(d.pp!==undefined){ proposals.lines[+d.pp].on=el.checked; return; }
+});
+document.addEventListener("change",e=>{
+  const el=e.target;
+  if(el.dataset.pp!==undefined){ proposals.lines[+el.dataset.pp].on=el.checked; return; }
+  if(el.dataset.l && (el.dataset.f==="area")){ const y=window.scrollY; render(); window.scrollTo({top:y}); return; }
+  if(el.dataset.photoin){ if(el.files.length) addPhotos(el.files, el.dataset.photoin); el.value=""; return; }
+  if(el.dataset.p){ const p=S.photos.find(x=>x.id===el.dataset.p); if(p){ p[el.dataset.f]=el.value; touch(); if(el.dataset.f!=="caption"){ const y=window.scrollY; render(); window.scrollTo({top:y}); } } return; }
+  if(el.dataset.photoarea){ photoArea[el.dataset.photoarea]=el.value; return; }
+  if(el.dataset.phototrade!==undefined){ photoArea._trade=el.value; return; }
+  if(el.id==="loadJson" && el.files[0]){ const fr=new FileReader(); fr.onload=()=>{ try{ const d=parseClaimText(fr.result); if(!d.claim||!Array.isArray(d.lines)) throw 0; S=d; save(); render(); toast("Claim file opened"); }catch(x){ toast("That file isn't a claim file from this checklist"); } }; fr.readAsText(el.files[0]); }
+});
+
+["dragover","dragenter"].forEach(ev=>document.addEventListener(ev,e=>{ const d=e.target.closest?.("[data-drop]"); if(d){ e.preventDefault(); d.classList.add("over"); } }));
+document.addEventListener("dragleave",e=>{ const d=e.target.closest?.("[data-drop]"); if(d) d.classList.remove("over"); });
+document.addEventListener("drop",e=>{ const d=e.target.closest?.("[data-drop]"); if(!d) return; e.preventDefault(); d.classList.remove("over"); if(e.dataTransfer?.files?.length) addPhotos(e.dataTransfer.files, d.dataset.drop); });
+
+/* ---------- Boot ---------- */
+let __emb=null, __local=null; try{ __emb=JSON.parse(document.getElementById("claim-data").textContent); }catch(e){}
+try{ const raw=localStorage.getItem(KEY); if(raw) __local=JSON.parse(raw); }catch(e){}
+S = (__local && __emb && (__local.__savedAt||0) > (__emb.__savedAt||0)) ? __local : (__emb || __local);
+const __usedLocal = S === __local && !!__local;
+if(!S || !S.claim) S = sampleState();
+if(!Array.isArray(S.photos)) S.photos=[]; if(!Array.isArray(S.equip)) S.equip=[];
+if(!S.water.target) S.water.target="r1"; if(!S.roof.area) S.roof.area="r4";
+if(!roomById(addArea.water)){ const rm=S.rooms.find(r=>r.kind==="room"), rf=S.rooms.find(r=>r.kind==="roof"), ev=S.rooms.find(r=>r.kind==="elev"); addArea={water:rm?.id||"",fire:rm?.id||"",roof:rf?.id||"",interior:rm?.id||"",exterior:ev?.id||""}; }
+renderTabs(); render();
+(async()=>{
+  if(!window.claude?.use){ sampleReady=true; if(cur==="agent") render(); return; }
+  try{ sampleFn = await window.claude.use("sample"); }catch(e){ sampleFn=null; }
+  try{ dlFn = await window.claude.use("downloads"); }catch(e){ dlFn=null; }
+  try{ assetsFn = await window.claude.use("assets"); }catch(e){ assetsFn=null; }
+  sampleReady=true; if(cur==="agent"||cur==="estimate"||cur==="photos"){ const y=window.scrollY; render(); window.scrollTo({top:y}); }
+})();
+
+/* ---------- Standalone: files on this computer ---------- */
+const CLAIM_TYPES = [{ description: "Claim file", accept: { "application/json": [".json"], "text/html": [".html"] } }];
+let fileHandle = null, dirty = false;
+function setFileState(text, isDirty){
+  dirty = !!isDirty; const el = document.getElementById("fileState"); if(!el) return;
+  el.textContent = text; el.classList.toggle("dirty", dirty); el.title = text;
+}
+function downloadBlob(name, blob){
+  const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+dlFn = { save: async ({filename, data}) => { downloadBlob(filename, data instanceof Blob ? data : new Blob([data])); return { status: "saved" }; } };
+async function claimText(){
+  const c = JSON.parse(JSON.stringify(S));
+  for(const p of c.photos || []){ const d = await srcToData(p.src); if(d){ p.src = d; p.assetId = null; } }
+  return JSON.stringify(c);
+}
+async function saveToFile(saveAs){
+  const name = fileBase() + "_claim.json"; setFileState("Saving…", dirty);
+  const text = await claimText();
+  if(window.showSaveFilePicker){
+    try{
+      if(!fileHandle || saveAs) fileHandle = await window.showSaveFilePicker({ suggestedName: name, types: CLAIM_TYPES });
+      const w = await fileHandle.createWritable(); await w.write(text); await w.close();
+      setFileState("Saved to " + fileHandle.name + " at " + new Date().toLocaleTimeString([], {hour:"numeric", minute:"2-digit"}), false);
+      toast("Saved to " + fileHandle.name); return;
+    }catch(e){ if(e && e.name === "AbortError"){ setFileState(dirty ? "Unsaved changes" : "Not saved", dirty); return; } fileHandle = null; }
+  }
+  downloadBlob(name, new Blob([text], { type: "application/json" }));
+  setFileState("Downloaded " + name + ". Open it next time with Open.", false);
+  toast("Saved " + name + " to your Downloads folder");
+}
+function useClaim(d, handle, label){
+  if(!d || !d.claim || !Array.isArray(d.lines)) throw new Error("not a claim");
+  S = d;
+  if(!Array.isArray(S.photos)) S.photos = []; if(!Array.isArray(S.equip)) S.equip = [];
+  if(!S.water) S.water = { area: 0, cls: "2", rooms: 1, days: 3, dehuPints: 110 };
+  if(!S.roof) S.roof = { sq: 0, waste: 10, ridge: 0, hip: 0, valley: 0, eaves: 0, rakes: 0, pitch: 6, stories: 1, layers: 1, pipes: 0, step: 0, vent: 0 };
+  const rm = S.rooms.find(r => r.kind === "room"), rf = S.rooms.find(r => r.kind === "roof"), ev = S.rooms.find(r => r.kind === "elev");
+  addArea = { water: rm?.id || "", fire: rm?.id || "", roof: rf?.id || "", interior: rm?.id || "", exterior: ev?.id || "" };
+  if(!roomById(S.water.target)) S.water.target = rm?.id || ""; if(!roomById(S.roof.area)) S.roof.area = rf?.id || "";
+  proposals = null; fileHandle = handle || null;
+  realSave(); go("claim");
+  setFileState(handle ? "Opened " + handle.name : "Opened " + label + ". Save will make a new file.", false);
+  toast("Opened " + (S.claim.claimNo || S.claim.insured || "claim"));
+}
+async function openFromFile(){
+  if(dirty && !openConfirm){ openConfirm = true; setFileState("Unsaved changes. Click Open again to open anyway, or Save first.", true); setTimeout(() => { openConfirm = false; }, 6000); return; }
+  openConfirm = false;
+  if(window.showOpenFilePicker){
+    try{ const [h] = await window.showOpenFilePicker({ types: CLAIM_TYPES, multiple: false }); const f = await h.getFile(); useClaim(parseClaimText(await f.text()), h, f.name); return; }
+    catch(e){ if(e && e.name === "AbortError") return; if(e && e.message === "not a claim"){ toast("That file isn't a claim file from this checklist"); return; } }
+  }
+  const inp = document.createElement("input"); inp.type = "file"; inp.accept = "application/json,.json,text/html,.html";
+  inp.onchange = () => { const f = inp.files[0]; if(!f) return; const fr = new FileReader();
+    fr.onload = () => { try{ useClaim(parseClaimText(fr.result), null, f.name); }catch(e){ toast("That file isn't a claim file from this checklist"); } };
+    fr.readAsText(f); };
+  inp.click();
+}
+let openConfirm = false;
+const realSave = save;
+save = function(){ S.__savedAt = Date.now(); realSave(); setFileState(fileHandle ? "Unsaved changes in " + fileHandle.name : "Unsaved changes", true); };
+function printReport(html){
+  const f = document.createElement("iframe"); f.setAttribute("aria-hidden", "true"); f.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+  document.body.appendChild(f);
+  f.onload = () => setTimeout(() => { try{ f.contentWindow.focus(); f.contentWindow.print(); }catch(e){ toast("Use Save report, then print it from your browser."); } setTimeout(() => f.remove(), 60000); }, 300);
+  f.srcdoc = html;
+}
+document.addEventListener("click", e => {
+  if(e.target.closest("[data-ssave]")){ saveToFile(e.shiftKey); return; }
+  if(e.target.closest("[data-sopen]")){ openFromFile(); return; }
+  if(e.target.closest("[data-sprint]")){ toast("Preparing report…"); standaloneReport().then(printReport); }
+});
+document.addEventListener("keydown", e => {
+  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s"){ e.preventDefault(); saveToFile(e.shiftKey); }
+  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "o"){ e.preventDefault(); openFromFile(); }
+});
+window.addEventListener("beforeunload", e => { if(dirty){ e.preventDefault(); e.returnValue = ""; } });
+setFileState(S.example ? "Example claim. Start a new claim or Open your file." : "Working copy on this computer. Save to keep it as a file.", false);
+render();
+
+/* ---------- Claim file: save an updated copy of this file ---------- */
+let htmlHandle = null;
+async function smallPhoto(src){
+  try{ const img = new Image(); img.src = src; await img.decode(); const k = Math.min(1, 720 / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement("canvas"); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); return c.toDataURL("image/jpeg", 0.68); }catch(e){ return ""; }
+}
+async function staticViewHTML(){
+  const map = {}; for(const p of S.photos || []) map[p.id] = await smallPhoto(p.src);
+  return `<div class="viewnote"><b>Viewing only.</b>This is a read-only view of the claim. To edit it, open this file on a computer in Chrome, Edge, Safari or Firefox.</div><div class="report">${reportInner(map)}</div>`;
+}
+window.__staticViewHTML = staticViewHTML;
+async function claimHTMLText(){
+  const json = (await claimText()).replace(/</g, "\\u003c");
+  const view = await staticViewHTML();
+  return __SHELL.replace(/(<script type="application\/json" id="claim-data">)[\s\S]*?(<\/script>)/, (m, a, b) => a + json + b)
+               .replace(/(<div id="staticView">)[\s\S]*?(<\/div><!--\/staticView-->)/, (m, a, b) => a + view + b);
+}
+saveToFile = async function(saveAs){
+  S.__savedAt = Date.now(); realSave();
+  const name = `Claim ${S.claim.claimNo || "file"}.html`.replace(/[\\/:*?"<>|]+/g, "_");
+  setFileState("Saving…", dirty);
+  const text = await claimHTMLText();
+  if(window.showSaveFilePicker){
+    try{
+      if(!htmlHandle || saveAs) htmlHandle = await window.showSaveFilePicker({ suggestedName: name, types: [{ description: "Claim file", accept: { "text/html": [".html"] } }] });
+      const w = await htmlHandle.createWritable(); await w.write(text); await w.close();
+      setFileState("Saved to " + htmlHandle.name + " at " + new Date().toLocaleTimeString([], {hour:"numeric", minute:"2-digit"}), false);
+      toast("Saved " + htmlHandle.name + ". You can email this file."); return;
+    }catch(e){ if(e && e.name === "AbortError"){ setFileState(dirty ? "Unsaved changes" : "Not saved", dirty); return; } htmlHandle = null; }
+  }
+  downloadBlob(name, new Blob([text], { type: "text/html" }));
+  setFileState("Downloaded " + name + ". Email that file or open it to keep working.", false);
+  toast("Saved " + name + " to your Downloads folder");
+};
+setFileState(__usedLocal
+  ? "Showing your changes from " + new Date(S.__savedAt).toLocaleString([], {month:"short", day:"numeric", hour:"numeric", minute:"2-digit"}) + ". Save to update the file."
+  : "Claim file. Edit, then Save to make an updated copy you can email.", false);
+</script>
+</body>
+</html>

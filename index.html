@@ -943,7 +943,7 @@ function pageEstimate(){
     <button class="btn primary" data-act="copyentry">Copy Xactimate entry sheet</button>
     <button class="btn" data-act="copycsv">Copy CSV</button>
     <span class="dlonly" ${dlFn?"":"hidden"}><button class="btn" data-act="savecsv">Save CSV</button> <button class="btn" data-act="savehtml">Save report (.html)</button> <button class="btn" data-act="savejson">Save claim file</button> <button class="btn" data-act="printrep">Print / Save PDF</button></span>
-    <label class="btn" for="loadJson">Open claim file</label><input id="loadJson" type="file" accept="application/json,.json" hidden>
+    <label class="btn" for="loadJson">Open claim file</label><input id="loadJson" type="file" accept="application/json,.json,text/html,.html" hidden>
   </div><p class="note">The entry sheet lists each area's CAT, SEL, activity and quantity in Line Entry order. The saved report opens in any browser and prints to PDF.</p></div>
   <div class="report" style="margin-top:16px">${reportInner()}</div>
   <div class="panel" style="margin-top:16px"><h3>All line items</h3>${linesTableHTML(S.lines,true)}</div>`;
@@ -1250,6 +1250,43 @@ document.addEventListener("click",async e=>{
   b.disabled=false; b.textContent=label;
 });
 
+
+/* ---------- Claim files: one file anyone can open ---------- */
+const CLAIM_TEMPLATE = "claim-template.html";
+function parseClaimText(t){
+  t = String(t || "").trim();
+  if(t.startsWith("{")) return JSON.parse(t);
+  const m = t.match(/<script type="application\/json" id="claim-data">([\s\S]*?)<\/script>/);
+  if(!m) throw new Error("not a claim file");
+  return JSON.parse(m[1]);
+}
+async function smallPhotoData(src){
+  try{ const img = new Image(); img.src = src; await img.decode(); const k = Math.min(1, 720 / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement("canvas"); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); return c.toDataURL("image/jpeg", 0.68); }catch(e){ return ""; }
+}
+async function claimStaticView(photos){
+  const map = {}; for(const p of photos) map[p.id] = await smallPhotoData(p.src);
+  return `<div class="viewnote"><b>Viewing only.</b>To edit this claim, open this file on a computer in Chrome, Edge, Safari or Firefox, or open it in the Field Scope Checklist app with Open claim file.</div><div class="report">${reportInner(map)}</div>`;
+}
+async function exportClaimFile(){
+  const c = JSON.parse(JSON.stringify(S));
+  for(const p of c.photos || []){ const d = await srcToData(p.src); if(d){ p.src = d; p.assetId = null; } }
+  c.__savedAt = Date.now();
+  let tpl = null;
+  try{ const r = await fetch(CLAIM_TEMPLATE, { cache: "no-cache" }); if(r.ok) tpl = await r.text(); }catch(e){}
+  if(!tpl || !tpl.includes('id="claim-data"')){ saveFile(fileBase() + "_claim.json", JSON.stringify(c), "application/json"); return; }
+  toast("Preparing the claim file…");
+  const json = JSON.stringify(c).replace(/</g, "\\u003c");
+  const view = await claimStaticView(c.photos || []);
+  const title = ("Claim " + (c.claim.claimNo || "") + (c.claim.address ? " · " + String(c.claim.address).split(",")[0] : "")).trim();
+  const html = tpl.replace(/<title>[\s\S]*?<\/title>/, () => "<title>" + esc(title) + "</title>")
+    .replace(/(<script type="application\/json" id="claim-data">)[\s\S]*?(<\/script>)/, (m, a, b) => a + json + b)
+    .replace(/(<div id="staticView">)[\s\S]*?(<\/div><!--\/staticView-->)/, (m, a, b) => a + view + b);
+  const name = ("Claim " + (c.claim.claimNo || fileBase()) + ".html").replace(/[\\/:*?"<>|]+/g, "_");
+  saveFile(name, html, "text/html");
+}
+
 /* ---------- Render dispatcher ---------- */
 function render(){
   const P={claim:pageClaim,water:pageWater,fire:pageFire,roof:pageRoof,interior:pageInterior,exterior:pageExterior,agent:pageAgent,estimate:pageEstimate,photos:pagePhotos,equip:pageEquip,claims:pageClaims}; P.moisture=pageMoisture;
@@ -1309,7 +1346,7 @@ document.addEventListener("click",e=>{
   if(a==="copyentry") return copyText(entrySheet(),"Entry sheet");
   if(a==="savecsv") return saveFile(fileBase()+"_lines.csv",csv(),"text/csv");
   if(a==="savehtml"){ toast("Preparing report…"); standaloneReport().then(h=>saveFile(fileBase()+"_scope.html",h,"text/html")); return; }
-  if(a==="savejson"){ (async()=>{ const c=JSON.parse(JSON.stringify(S)); for(const p of c.photos||[]){ const d=await srcToData(p.src); if(d){ p.src=d; p.assetId=null; } } saveFile(fileBase()+"_claim.json",JSON.stringify(c),"application/json"); })(); return; }
+  if(a==="savejson"){ exportClaimFile(); return; }
 });
 document.addEventListener("input",e=>{
   const el=e.target, d=el.dataset;
@@ -1336,7 +1373,7 @@ document.addEventListener("change",e=>{
   if(el.dataset.p){ const p=S.photos.find(x=>x.id===el.dataset.p); if(p){ p[el.dataset.f]=el.value; touch(); if(el.dataset.f!=="caption"){ const y=window.scrollY; render(); window.scrollTo({top:y}); } } return; }
   if(el.dataset.photoarea){ photoArea[el.dataset.photoarea]=el.value; return; }
   if(el.dataset.phototrade!==undefined){ photoArea._trade=el.value; return; }
-  if(el.id==="loadJson" && el.files[0]){ const fr=new FileReader(); fr.onload=()=>{ try{ const d=JSON.parse(fr.result); if(!d.claim||!Array.isArray(d.lines)) throw 0; persist(); d.id=uid(); S=d; normalize(); save(); render(); toast("Claim file added to Claims"); }catch(x){ toast("That file isn't a claim file from this checklist"); } }; fr.readAsText(el.files[0]); }
+  if(el.id==="loadJson" && el.files[0]){ const fr=new FileReader(); fr.onload=()=>{ try{ const d=parseClaimText(fr.result); if(!d.claim||!Array.isArray(d.lines)) throw 0; persist(); d.id=uid(); S=d; normalize(); save(); render(); toast("Claim file added to Claims"); }catch(x){ toast("That file isn't a claim file from this checklist"); } }; fr.readAsText(el.files[0]); }
 });
 
 ["dragover","dragenter"].forEach(ev=>document.addEventListener(ev,e=>{ const d=e.target.closest?.("[data-drop]"); if(d){ e.preventDefault(); d.classList.add("over"); } }));
