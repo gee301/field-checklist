@@ -224,6 +224,8 @@ button,.tab,label.btn,.seg button,select{touch-action:manipulation}
 .sugg-main{min-width:0;display:flex;flex-direction:column;gap:2px}
 .sugg-meta,.sugg-why{font-size:12.5px;color:var(--muted)}
 .setq{color:var(--warn);font-weight:600}
+.c-table td select{min-width:130px}.c-table td select[data-f="category"],.c-table td select[data-f="action"]{min-width:180px}.c-table td select[data-f="method"]{min-width:210px}.c-table td select[data-f="area"]{min-width:130px}
+.c-flag{font-size:12px;color:var(--warn);margin-top:4px;max-width:260px}
 .m-dry{color:var(--ok);font-weight:600}.m-wet{color:var(--warn);font-weight:600}
 .catsearch{display:flex;gap:8px;align-items:center;margin-bottom:10px}
 .catsearch input{flex:1}
@@ -537,11 +539,11 @@ function refreshTotals(){
 }
 
 /* ---------- Tabs ---------- */
-const TAB_LIST = [["claim","Claim & Areas"],...Object.entries(TRADES).map(([k,v])=>[k,v.short]),["equip","Equipment"],["moisture","Moisture"],["photos","Photos"],["agent","AI Agent"],["estimate","Scope Report"]];
+const TAB_LIST = [["claim","Claim & Areas"],...Object.entries(TRADES).map(([k,v])=>[k,v.short]),["equip","Equipment"],["moisture","Moisture"],["contents","Contents"],["photos","Photos"],["agent","AI Agent"],["estimate","Scope Report"]];
 let cur = "claim";
 function renderTabs(){
   $("#tabs").innerHTML = TAB_LIST.map(([k,label])=>{
-    const t=TRADES[k]; const cnt = t? S.lines.filter(l=>l.trade===k).length : (k==="estimate"? S.lines.length : k==="photos"? S.photos.length : k==="equip"? S.equip.length : k==="moisture"? moistSummary().points : null);
+    const t=TRADES[k]; const cnt = t? S.lines.filter(l=>l.trade===k).length : (k==="estimate"? S.lines.length : k==="photos"? S.photos.length : k==="equip"? S.equip.length : k==="moisture"? moistSummary().points : k==="contents"? cont().length : null);
     return `<button class="tab" role="tab" data-tab="${k}" aria-selected="${k===cur}" ${t?`style="--tc:var(${t.color})"`:""}>${t?'<span class="dot"></span>':""}${esc(label)}${cnt!=null?`<span class="n">${cnt}</span>`:""}</button>`;
   }).join("");
 }
@@ -837,7 +839,7 @@ function contextBlock(){
 AREAS (use these exact names):\n${rooms}
 INSPECTION CHECKLIST:\n${checks}
 FIRE NOTES: ${S.checks.f_notes||""}\nEXTERIOR NOTES: ${S.checks.e_notes||""}
-ROOF MEASUREMENTS: ${JSON.stringify(S.roof)}\nMOISTURE READINGS (latest per point):\n${(()=>{ const pts={}; moist().forEach(m=>{ const k=pointKey(m); if(!pts[k]||m.date>=pts[k].date) pts[k]=m; }); return Object.values(pts).map(m=>`- ${areaName(m.area)} ${m.point} (${m.material}): ${m.reading||"?"} vs goal ${m.goal||"?"} on ${m.date}`).join("\n")||"(none)"; })()}\nEQUIPMENT LOG (already billed as lines):\n${S.equip.map(q=>`- ${q.units} x ${q.name} in ${areaName(q.area)}, ${equipDays(q)} days${q.removed?"":" (still on site)"}`).join("\n")||"(none)"}
+ROOF MEASUREMENTS: ${JSON.stringify(S.roof)}\nMOISTURE READINGS (latest per point):\n${(()=>{ const pts={}; moist().forEach(m=>{ const k=pointKey(m); if(!pts[k]||m.date>=pts[k].date) pts[k]=m; }); return Object.values(pts).map(m=>`- ${areaName(m.area)} ${m.point} (${m.material}): ${m.reading||"?"} vs goal ${m.goal||"?"} on ${m.date}`).join("\n")||"(none)"; })()}\nCONTENTS (personal items):\n${cont().map(x=>`- ${x.qty} x ${x.item} (${x.category}) in ${areaName(x.area)}: ${x.condition}, ${x.action}, ${x.method}`).join("\n")||"(none)"}\nEQUIPMENT LOG (already billed as lines):\n${S.equip.map(q=>`- ${q.units} x ${q.name} in ${areaName(q.area)}, ${equipDays(q)} days${q.removed?"":" (still on site)"}`).join("\n")||"(none)"}
 LINES ALREADY IN ESTIMATE:\n${lines}
 CATALOG (trade | CAT SEL | default activity | unit | description):\n${cat}`;
 }
@@ -935,7 +937,7 @@ function reportInner(map){
   }).join("");
   const sum = "";
   const trades = `<div class="area-h">Recap by trade</div><div class="tscroll"><table class="rep-table"><thead><tr><th>Trade</th><th class="r">Line items</th></tr></thead><tbody>${Object.entries(TRADES).map(([k,t])=>{const ls=S.lines.filter(l=>l.trade===k);return ls.length?`<tr><td>${t.name}</td><td class="money">${ls.length}</td></tr>`:""}).join("")}</tbody></table></div>`;
-  return head+narr+(groups||`<div class="empty">No line items yet.</div>`)+equipSheet()+moistureSheet()+trades+sum+photoSheet(map);
+  return head+narr+(groups||`<div class="empty">No line items yet.</div>`)+equipSheet()+moistureSheet()+contentsSheet()+trades+sum+photoSheet(map);
 }
 function pageEstimate(){
   return `${exampleBanner()}<div class="sec-head"><div><span class="eyebrow">Output</span><h2>Scope report</h2><p>Line items and quantities grouped by area, with no pricing. Copy the entry sheet to key the scope into Xactimate, or save the report for the file.</p></div></div>
@@ -976,8 +978,8 @@ function pagePhotos(){
 }
 
 /* ---------- Phone card tables ---------- */
-const CARD_TABLES = "table.cat-table,table.lines-table,table.eq-table,table.rooms,table.prop-table,table.m-table";
-const WIDE_COLS = /^(description|equipment|why|name|location)$/i;
+const CARD_TABLES = "table.cat-table,table.lines-table,table.eq-table,table.rooms,table.prop-table,table.m-table,table.c-table";
+const WIDE_COLS = /^(description|equipment|why|name|location|item|notes)$/i;
 function labelCells(root){
   (root||document).querySelectorAll(CARD_TABLES).forEach(t=>{
     if(t.dataset.carded==="1" && t.tBodies[0]?.dataset.n===String(t.tBodies[0].rows.length)) return;
@@ -1287,9 +1289,103 @@ async function exportClaimFile(){
   saveFile(name, html, "text/html");
 }
 
+/* ---------- Contents: personal items to clean ---------- */
+const C_CATS = ["Upholstered furniture","Wood / hard furniture","Mattress / bedding","Rugs","Clothing / soft goods","Books / papers","Photos / documents","Electronics","Appliances","Kitchenware / hard goods","Toys","Décor / artwork","Other"];
+const C_POROUS = new Set(["Upholstered furniture","Mattress / bedding","Rugs","Clothing / soft goods","Books / papers","Toys"]);
+const C_COND = ["Wet","Damp","Stained","Odor","Mold growth","Warped / delaminated","Not damaged (moved only)"];
+const C_ACT = ["Clean on site","Pack out & clean","Dry & monitor","Not salvageable (dispose)","Owner keeps as-is"];
+const C_METH = ["Wipe clean & dry","Wet clean / ultrasonic","Upholstery cleaning","Rug cleaning (off-site)","Launder / dry clean","Freeze-dry / document restoration","Electronics restoration (specialist)","Deodorize / ozone","None"];
+const C_STAT = ["Not started","Cleaning","Cleaned","Returned","Disposed"];
+const C_QUICK = [
+  ["Sofa / upholstered chair","Upholstered furniture","Upholstery cleaning"],["Mattress","Mattress / bedding","Upholstery cleaning"],
+  ["Bedding / linens (box)","Mattress / bedding","Launder / dry clean"],["Area rug","Rugs","Rug cleaning (off-site)"],
+  ["Clothing (box)","Clothing / soft goods","Launder / dry clean"],["Shoes (box)","Clothing / soft goods","Wet clean / ultrasonic"],
+  ["Books (box)","Books / papers","Freeze-dry / document restoration"],["Papers / documents (box)","Photos / documents","Freeze-dry / document restoration"],
+  ["Photo albums","Photos / documents","Freeze-dry / document restoration"],["TV","Electronics","Electronics restoration (specialist)"],
+  ["Computer / gaming","Electronics","Electronics restoration (specialist)"],["Wood furniture","Wood / hard furniture","Wipe clean & dry"],
+  ["Kitchenware (box)","Kitchenware / hard goods","Wet clean / ultrasonic"],["Toys (box)","Toys","Wet clean / ultrasonic"],
+  ["Décor / artwork","Décor / artwork","Wipe clean & dry"],["Other item","Other","Wipe clean & dry"]
+];
+const cont = () => (S.contents || (S.contents = []));
+let contArea = "";
+const cat3 = () => /Cat 3/.test(S.checks?.w_cat || "");
+function contFlag(x){
+  if(x.action === "Not salvageable (dispose)" || x.action === "Owner keeps as-is") return "";
+  if(cat3() && C_POROUS.has(x.category)) return "Category 3 water: porous items like this are usually not salvageable (IICRC S500). Get the owner's sign-off.";
+  if(x.condition === "Mold growth" && C_POROUS.has(x.category)) return "Mold on a porous item: usually not salvageable.";
+  return "";
+}
+function contSummary(){
+  let items=0, clean=0, pack=0, dispose=0, done=0, flags=0;
+  cont().forEach(x=>{ const q=Math.max(1,n(x.qty)||1); items+=q;
+    if(x.action==="Clean on site"||x.action==="Pack out & clean") clean+=q;
+    if(x.action==="Pack out & clean") pack+=q;
+    if(x.action==="Not salvageable (dispose)") dispose+=q;
+    if(x.status==="Cleaned"||x.status==="Returned"||x.status==="Disposed") done+=q;
+    if(contFlag(x)) flags++; });
+  const boxes=new Set(cont().map(x=>String(x.box||"").trim()).filter(Boolean)).size;
+  return {items,clean,pack,dispose,done,flags,boxes,lines:cont().length};
+}
+function contCards(s){ return `<div><span>Items</span><b>${s.items}</b></div><div><span>To clean</span><b>${s.clean}</b></div><div><span>Packed out</span><b>${s.pack}</b></div><div><span>Not salvageable</span><b>${s.dispose}</b></div><div><span>Done</span><b>${s.done} of ${s.items}</b></div><div><span>Boxes</span><b>${s.boxes}</b></div>`; }
+const opts = (list, v) => list.map(o=>`<option ${o===v?"selected":""}>${esc(o)}</option>`).join("");
+function pageContents(){
+  if(!contArea || !roomById(contArea)) contArea = (typeof waterRooms==="function" && waterRooms()[0]?.id) || roomList()[0]?.id || "";
+  const list=[...cont()].sort((a,b)=>areaName(a.area).localeCompare(areaName(b.area)));
+  const rows=list.map(x=>{ const f=contFlag(x); return `<tr>
+    <td><input data-cn="${x.id}" data-f="item" value="${esc(x.item)}" aria-label="Item" style="min-width:160px">${f?`<div class="c-flag" data-cflag="${x.id}">${esc(f)}</div>`:`<div class="c-flag" data-cflag="${x.id}" hidden></div>`}</td>
+    <td><select class="w-area" data-cn="${x.id}" data-f="area" aria-label="Room">${areaOptions(x.area,r=>r.kind==="room")}</select></td>
+    <td><select data-cn="${x.id}" data-f="category" aria-label="Category">${opts(C_CATS,x.category)}</select></td>
+    <td><input class="num" style="width:56px" inputmode="numeric" data-cn="${x.id}" data-f="qty" value="${esc(x.qty)}" aria-label="Quantity"></td>
+    <td><select data-cn="${x.id}" data-f="condition" aria-label="Condition">${opts(C_COND,x.condition)}</select></td>
+    <td><select data-cn="${x.id}" data-f="action" aria-label="Action">${opts(C_ACT,x.action)}</select></td>
+    <td><select data-cn="${x.id}" data-f="method" aria-label="Cleaning method">${opts(C_METH,x.method)}</select></td>
+    <td><input style="width:70px" data-cn="${x.id}" data-f="box" value="${esc(x.box)}" placeholder="—" aria-label="Box number"></td>
+    <td><input style="width:80px" data-cn="${x.id}" data-f="photos" value="${esc(x.photos)}" placeholder="e.g. 4, 7" aria-label="Photo numbers"></td>
+    <td><select data-cn="${x.id}" data-f="status" aria-label="Status">${opts(C_STAT,x.status)}</select></td>
+    <td><input data-cn="${x.id}" data-f="notes" value="${esc(x.notes)}" placeholder="Brand, size, owner notes" aria-label="Notes" style="min-width:150px"></td>
+    <td><button class="btn ghost small" data-cact="del" data-id="${x.id}" aria-label="Remove item">✕</button></td></tr>`; }).join("");
+  return `${exampleBanner()}<div class="sec-head" style="--tc:var(--t-interior)"><div><span class="eyebrow"><span class="dot"></span> Personal property</span><h2>Contents</h2><p>List the owner's water-damaged belongings room by room: what each item is, its condition, whether it's cleaned or not salvageable, how it's cleaned, and where it's boxed. The list prints with the report.</p></div></div>
+  <div class="calc-out" id="cTot" style="margin-top:0">${contCards(contSummary())}</div>
+  <div class="panel"><div class="row" style="justify-content:space-between;margin-bottom:10px"><h3 style="margin:0">Add items</h3>
+    <div class="row"><label class="flabel" for="cArea">To room</label><select id="cArea" data-carea style="width:auto">${areaOptions(contArea,r=>r.kind==="room")}</select></div></div>
+    <div class="row">${C_QUICK.map((q,i)=>`<button class="btn small" data-cact="add" data-q="${i}">+ ${esc(q[0])}</button>`).join("")}</div>
+    <p class="note">${cat3()?"This claim is Category 3 water, so porous items (upholstery, mattresses, rugs, clothing, paper, soft toys) get flagged for an owner sign-off. ":""}Reference photos by their number on the Photos tab.</p></div>
+  <div class="panel"><div class="row" style="justify-content:space-between;margin-bottom:10px"><h3 style="margin:0">Inventory</h3>${list.length?`<span class="eyebrow">${list.length} line${list.length===1?"":"s"}</span>`:""}</div>
+  ${list.length?`<div class="tscroll"><table class="c-table"><thead><tr><th>Item</th><th>Room</th><th>Category</th><th class="r">Qty</th><th>Condition</th><th>Action</th><th>Cleaning method</th><th>Box #</th><th>Photo #s</th><th>Status</th><th>Notes</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
+   :`<div class="tscroll"><div class="empty">No items yet. Pick a room and tap an item type above.</div></div>`}</div>`;
+}
+function contentsSheet(){
+  if(!cont().length) return "";
+  const s=contSummary(), by={};
+  cont().forEach(x=>{ (by[x.area||""] ||= []).push(x); });
+  return `<div class="area-h">Contents inventory <small>${s.items} items · ${s.clean} to clean · ${s.dispose} not salvageable · ${s.boxes} boxes</small></div><div class="tscroll"><table class="rep-table"><thead><tr><th>Item</th><th>Room</th><th class="r">Qty</th><th>Condition</th><th>Action</th><th>Method</th><th>Box</th><th>Photos</th><th>Status</th></tr></thead><tbody>
+  ${Object.entries(by).map(([a,xs])=>xs.map(x=>`<tr><td>${esc(x.item)}<div class="code">${esc(x.category)}${x.notes?" · "+esc(x.notes):""}</div></td><td>${esc(areaName(a))}</td><td class="money">${esc(x.qty)}</td><td>${esc(x.condition)}</td><td>${esc(x.action)}</td><td>${esc(x.method)}</td><td class="code">${esc(x.box||"")}</td><td class="code">${esc(x.photos||"")}</td><td>${esc(x.status)}</td></tr>`).join("")).join("")}
+  </tbody></table></div>`;
+}
+function updateContRow(x){
+  const f=contFlag(x), el=document.querySelector(`[data-cflag="${x.id}"]`); if(el){ el.textContent=f; el.hidden=!f; }
+  const t=document.getElementById("cTot"); if(t) t.innerHTML=contCards(contSummary());
+}
+document.addEventListener("click",e=>{
+  const b=e.target.closest("[data-cact]"); if(!b) return;
+  const y=window.scrollY;
+  if(b.dataset.cact==="add"){ const [item,category,method]=C_QUICK[+b.dataset.q];
+    cont().push({id:uid(),item,area:contArea,category,qty:1,condition:"Wet",action:cat3()&&C_POROUS.has(category)?"Not salvageable (dispose)":"Clean on site",method,box:"",photos:"",status:"Not started",notes:""});
+    toast(`${item} added to ${areaName(contArea)}`); }
+  if(b.dataset.cact==="del"){ S.contents=cont().filter(x=>x.id!==b.dataset.id); }
+  touch(); render(); window.scrollTo({top:y});
+});
+document.addEventListener("input",e=>{
+  const el=e.target, d=el.dataset;
+  if(d.carea!==undefined){ contArea=el.value; return; }
+  if(d.cn){ const x=cont().find(i=>i.id===d.cn); if(!x) return; x[d.f]=el.value;
+    if(d.f==="action" && el.value==="Not salvageable (dispose)" && x.status==="Not started") x.status="Disposed";
+    touch(); if(d.f==="area"||(d.f==="action"&&x.status==="Disposed")){ const y=window.scrollY; render(); window.scrollTo({top:y}); } else updateContRow(x); }
+});
+
 /* ---------- Render dispatcher ---------- */
 function render(){
-  const P={claim:pageClaim,water:pageWater,fire:pageFire,roof:pageRoof,interior:pageInterior,exterior:pageExterior,agent:pageAgent,estimate:pageEstimate,photos:pagePhotos,equip:pageEquip,claims:pageClaims}; P.moisture=pageMoisture;
+  const P={claim:pageClaim,water:pageWater,fire:pageFire,roof:pageRoof,interior:pageInterior,exterior:pageExterior,agent:pageAgent,estimate:pageEstimate,photos:pagePhotos,equip:pageEquip,claims:pageClaims}; P.moisture=pageMoisture; P.contents=pageContents;
   $("#main").innerHTML=P[cur](); refreshTotals();
 
 }

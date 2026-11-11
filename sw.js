@@ -1,5 +1,5 @@
 /* Scope Checklist service worker: keeps the app working offline. */
-const VERSION = "field-v1.1.0";
+const VERSION = "field-v1.2.0";
 const FONTS = "scope-fonts";
 const SHELL = ["./", "index.html", "config.js", "claim-template.html", "manifest.webmanifest",
   "icons/icon-192.png", "icons/icon-512.png", "icons/maskable-512.png", "icons/apple-touch-icon.png", "icons/favicon-32.png"];
